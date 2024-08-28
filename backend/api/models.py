@@ -1,11 +1,13 @@
 from django.db import models
+from django.contrib.auth.models import User
 
-class User(models.Model):
-    email = models.CharField(max_length=100)
-    password = models.CharField(max_length=50)
-    user_type = models.CharField(max_length=50)
+
+class UserData(models.Model):
+    user_type = models.CharField(max_length=100)
+    transcript = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
     time = models.IntegerField()
-
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notes")
 
     def __str__(self):
-        return self.email
+        return self.title

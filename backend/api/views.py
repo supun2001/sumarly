@@ -1,8 +1,8 @@
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
-from .models import User
-from .serializer import UserSerializer
+from .models import *
+from .serializer import *
 from yt_dlp import YoutubeDL
 import os
 import hashlib
@@ -11,6 +11,8 @@ from django.conf import settings
 from django.core.files.storage import default_storage
 from mutagen.mp3 import MP3
 from django.shortcuts import get_object_or_404
+from rest_framework import generics
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
 
 aai.settings.api_key = settings.API_KEY
@@ -23,54 +25,80 @@ TRANSCRIPTION_PARAMS = {
 }
 
 def get_audio_length(file_path):
-    """Get the length of the audio file in seconds."""
     audio = MP3(file_path)
     return audio.info.length
 
 def generate_file_hash(file_path):
-    """Generate a hash for the file to check for duplicates."""
     hasher = hashlib.md5()
     with open(file_path, 'rb') as file:
         while chunk := file.read(8192):
             hasher.update(chunk)
     return hasher.hexdigest()
 
+class UserDataListCreate(generics.ListCreateAPIView):
+    serializer_class = UserDataSerializer
+    permission_classes = [IsAuthenticated]
 
-@api_view(['GET'])
-def get_user(req):
-    users = User.objects.all()
-    serializer = UserSerializer(users,many=True)
-    return Response(serializer.data)
+    def get_queryset(self):
+        user = self.request.user
+        return UserData.objects.filter(author=user)
 
-@api_view(['POST'])
-def create_user(req):
-    serializer = UserSerializer(data=req.data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data,status=status.HTTP_201_CREATED)
-    return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
-
-@api_view(['GET', 'PUT', 'DELETE'])
-def user_details(req, pk):
-    try:
-        user = User.objects.get(pk=pk)
-    except User.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
-    
-    if req.method == 'GET':
-        serializer = UserSerializer(user)
-        return Response(serializer.data)
-    
-    elif req.method == 'PUT':
-        serializer = UserSerializer(user, data=req.data)
+    def perform_create(self, serializer):
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            serializer.save(author=self.request.user)
+        else:
+            print(serializer.errors)
+
+
+class UserDataDelete(generics.DestroyAPIView):
+    serializer_class = UserDataSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        return UserData.objects.filter(author=user)
+
+class CreateUserView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [AllowAny]
+
+# @api_view(['GET'])
+# def get_user(req):
+#     users = User.objects.all()
+#     serializer = UserSerializer(users,many=True)
+#     return Response(serializer.data)
+
+# @api_view(['POST'])
+# @permission_classes([AllowAny])
+# def create_user(req):
+#     serializer = UserSerializer(data=req.data)
+#     if serializer.is_valid():
+#         serializer.save()
+#         return Response(serializer.data,status=status.HTTP_201_CREATED)
+#     return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
+# @api_view(['GET', 'PUT', 'DELETE'])
+# def user_details(req, pk):
+#     try:
+#         user = User.objects.get(pk=pk)
+#     except User.DoesNotExist:
+#         return Response(status=status.HTTP_404_NOT_FOUND)
     
-    elif req.method == 'DELETE':
-        user.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+#     if req.method == 'GET':
+#         serializer = UserSerializer(user)
+#         return Response(serializer.data)
+    
+#     elif req.method == 'PUT':
+#         serializer = UserSerializer(user, data=req.data)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response(serializer.data)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+#     elif req.method == 'DELETE':
+#         user.delete()
+#         return Response(status=status.HTTP_204_NO_CONTENT)
     
 @api_view(['POST'])
 def download_and_transcribe(request):
@@ -153,10 +181,11 @@ def download_and_transcribe(request):
         audio_length = get_audio_length(audio_path)
 
         if user_id:
-            user = get_object_or_404(User, pk=user_id)
+            user = get_object_or_404(UserData, pk=user_id)
             current_time = user.time  # Fetch the current time value
             new_time = max(current_time - audio_length, 0)  # Ensure the time is not negative
             user.time = new_time
+            user.transcript  = transcript
             user.save()
 
         # Clean up the file if it was from a URL
