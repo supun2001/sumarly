@@ -10,4 +10,4 @@ class UserData(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notes")
 
     def __str__(self):
-        return self.title
+        return str(self.time)

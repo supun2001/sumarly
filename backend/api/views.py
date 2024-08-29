@@ -1,4 +1,3 @@
-from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
 from .models import *
@@ -13,7 +12,8 @@ from mutagen.mp3 import MP3
 from django.shortcuts import get_object_or_404
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated, AllowAny
-
+from rest_framework.views import APIView
+from rest_framework.exceptions import NotFound
 
 aai.settings.api_key = settings.API_KEY
 
@@ -63,140 +63,98 @@ class CreateUserView(generics.CreateAPIView):
     serializer_class = UserSerializer
     permission_classes = [AllowAny]
 
-# @api_view(['GET'])
-# def get_user(req):
-#     users = User.objects.all()
-#     serializer = UserSerializer(users,many=True)
-#     return Response(serializer.data)
 
-# @api_view(['POST'])
-# @permission_classes([AllowAny])
-# def create_user(req):
-#     serializer = UserSerializer(data=req.data)
-#     if serializer.is_valid():
-#         serializer.save()
-#         return Response(serializer.data,status=status.HTTP_201_CREATED)
-#     return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
-
-# @api_view(['GET', 'PUT', 'DELETE'])
-# def user_details(req, pk):
-#     try:
-#         user = User.objects.get(pk=pk)
-#     except User.DoesNotExist:
-#         return Response(status=status.HTTP_404_NOT_FOUND)
+class DownloadAndTranscribeAPIView(APIView):
+    permission_classes = [IsAuthenticated]
     
-#     if req.method == 'GET':
-#         serializer = UserSerializer(user)
-#         return Response(serializer.data)
-    
-#     elif req.method == 'PUT':
-#         serializer = UserSerializer(user, data=req.data)
-#         if serializer.is_valid():
-#             serializer.save()
-#             return Response(serializer.data)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-#     elif req.method == 'DELETE':
-#         user.delete()
-#         return Response(status=status.HTTP_204_NO_CONTENT)
-    
-@api_view(['POST'])
-def download_and_transcribe(request):
-    user_id = request.data.get('user_id')
-    if 'url' in request.data:
-        youtube_url = request.data.get('url')
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        user_id = user.id
         context = request.data.get('context', '')
 
-        if not youtube_url:
-            return Response({"error": "URL is required"}, status=status.HTTP_400_BAD_REQUEST)
+        # Handle YouTube URL input
+        if 'url' in request.data:
+            youtube_url = request.data.get('url')
 
+            if not youtube_url:
+                return Response({"error": "URL is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                audio_path = self.download_from_youtube(youtube_url)
+            except Exception as e:
+                return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # Handle file upload input
+        elif 'file' in request.FILES:
+            uploaded_file = request.FILES['file']
+            audio_path = self.save_uploaded_file(uploaded_file)
+        else:
+            return Response({"error": "No URL or file provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Process transcription and summarization
         try:
-            # Set up yt-dlp options
-            ydl_opts = {
-                'format': 'bestaudio/best',  # Download the best audio quality
-                'outtmpl': YTDLP_FNAME,      # Filename template for downloaded files
-                'postprocessors': [{         # Convert the audio to mp3
-                    'key': 'FFmpegExtractAudio',
-                    'preferredcodec': 'mp3',
-                    'preferredquality': '192',
-                }],
-            }
-
-            # Create the downloads directory if it doesn't exist
-            os.makedirs('downloads', exist_ok=True)
-
-            # Remove existing files with the same content
-            for file in os.listdir('downloads'):
-                if file.endswith('.mp3'):
-                    file_path = os.path.join('downloads', file)
-                    os.remove(file_path)
-
-            # Download and convert the video to audio
-            with YoutubeDL(ydl_opts) as ydl:
-                ydl.download([youtube_url])
-
-            # List downloaded files
-            downloaded_files = [file for file in os.listdir('downloads') if file.endswith('.mp3')]
-            if not downloaded_files:
-                raise FileNotFoundError("No MP3 files found after download.")
-
-            # Return the path of the first downloaded MP3 file
-            audio_path = os.path.join('downloads', downloaded_files[0])
-        
+            summary, new_time = self.transcribe_and_summarize(audio_path, user_id, context)
+            return Response({
+                "status": "success",
+                "summary": summary,
+                "remaining_time": new_time if user_id else None
+            })
         except Exception as e:
             return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    elif 'file' in request.FILES:
-        uploaded_file = request.FILES['file']
-        context = request.data.get('context', '')
+    def download_from_youtube(self, youtube_url):
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'outtmpl': 'downloads/%(title)s.%(ext)s',
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }],
+        }
 
-        # Save the uploaded file to the downloads directory
+        os.makedirs('downloads', exist_ok=True)
+
+        with YoutubeDL(ydl_opts) as ydl:
+            ydl.download([youtube_url])
+
+        downloaded_files = [file for file in os.listdir('downloads') if file.endswith('.mp3')]
+        if not downloaded_files:
+            raise FileNotFoundError("No MP3 files found after download.")
+
+        return os.path.join('downloads', downloaded_files[0])
+
+    def save_uploaded_file(self, uploaded_file):
         file_path = os.path.join('downloads', uploaded_file.name)
         with default_storage.open(file_path, 'wb+') as destination:
             for chunk in uploaded_file.chunks():
                 destination.write(chunk)
+        return file_path
 
-        audio_path = file_path
-
-    else:
-        return Response({"error": "No URL or file provided"}, status=status.HTTP_400_BAD_REQUEST)
-
-    try:
-        # Transcribe and summarize
+    def transcribe_and_summarize(self, audio_path, user_id, context):
         transcriber = aai.Transcriber()
         transcript = transcriber.transcribe(audio_path)
 
-        params = {
-            'answer_format': "**<part of the lesson>**\n<list of important points in that part>",
-            'max_output_size': 4000
-        }
+        params = TRANSCRIPTION_PARAMS.copy()
         if context:
             params['context'] = context
         
-        summary = transcript.lemur.summarize(**params)
+        summary = transcript.lemur.summarize(**params).response.strip().split('\n')
 
-        print("Transcript:", transcript) 
-
-        # Get the length of the audio file
         audio_length = get_audio_length(audio_path)
 
+        new_time = None
         if user_id:
-            user = get_object_or_404(UserData, pk=user_id)
-            current_time = user.time  # Fetch the current time value
-            new_time = max(current_time - audio_length, 0)  # Ensure the time is not negative
-            user.time = new_time
-            user.transcript  = transcript
-            user.save()
+            user_data = UserData.objects.filter(author_id=user_id).first()
+            if not user_data:
+                raise NotFound(detail="UserData not found for the given user_id")
+            current_time = user_data.time
+            new_time = max(current_time - audio_length, 0)
+            user_data.time = new_time
+            user_data.transcript = transcript
+            user_data.save()
 
-        # Clean up the file if it was from a URL
-        if 'url' in request.data:
+        if 'url' in self.request.data:
             os.remove(audio_path)
 
-        return Response({
-            "status": "success",
-            "summary": summary.response.strip().split('\n'),
-            "remaining_time": new_time if user_id else None
-        })
-
-    except Exception as e:
-        return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return summary, new_time
