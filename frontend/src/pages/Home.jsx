@@ -3,6 +3,8 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import getMPTheme from '../theme/getMPTheme';
 import AppAppBar from '../components/AppAppBar';
+import Hero from '../components/Hero';
+import Features from '../components/Features';
 // import TemplateFrame from './TemplateFrame';
 
 
@@ -38,8 +40,9 @@ function Home() {
     <ThemeProvider theme={MPTheme}>
       <CssBaseline enableColorScheme />
         <AppAppBar mode={mode} toggleColorMode={toggleColorMode} />
-       
+        <Hero />
         <div>
+          <Features />
           
         </div>
       </ThemeProvider>
