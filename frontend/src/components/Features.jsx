@@ -18,6 +18,7 @@ import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
 import CircularProgress from '@mui/material/CircularProgress';
 import LoadingButton from '@mui/lab/LoadingButton';
+import Questions from "./Questions";
 
 const parseSummary = (text) => {
     if (!text) return null;
@@ -88,7 +89,7 @@ const VisuallyHiddenInput = styled('input')({
     const [file, setFile] = useState(null);
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
   
     const handleChange = (event, newValue) => {
       setValue(newValue);
@@ -101,24 +102,35 @@ const VisuallyHiddenInput = styled('input')({
     const getNotes = () => {
       api
         .get("/api/notes/")
-        .then((res) => res.data)
-        .then((data) => {
-          setNotes(data);
-          console.log(data);
-        })
-        .catch((err) => alert(err));
-    };
-  
-    const deleteNote = (id) => {
-      api
-        .delete(`/api/notes/delete/${id}/`)
         .then((res) => {
-          if (res.status === 204) alert("Note deleted!");
-          else alert("Failed to delete note.");
-          getNotes();
+          const notes = res.data;
+          setNotes(notes);
+    
+          // Check if notes array is not empty
+          if (Array.isArray(notes) && notes.length > 0) {
+            // Debugging: Log the notes to ensure correct data structure
+            // console.log("Notes data:", notes);
+    
+            // Extract the latest transcript
+            const latestTranscript = notes[notes.length - 1].transcript;
+    
+            // Debugging: Log the latest transcript to verify
+            // console.log("Latest Transcript:", latestTranscript);
+    
+            setTranscript(latestTranscript);
+          } else {
+            // Handle case when there are no notes
+            setTranscript(null);
+          }
         })
-        .catch((error) => alert(error));
+        .catch((err) => {
+          // Handle errors
+          console.error("Error fetching notes:", err);
+          alert("Error fetching notes");
+        });
     };
+    
+    
   
     const createNote = (e) => {
       e.preventDefault();
@@ -142,7 +154,7 @@ const VisuallyHiddenInput = styled('input')({
       if (file) formData.append('file', file);
   
       try {
-        const response = await api.post('/api/download/', formData, {
+        const response = await api.post('/api/sumary/', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
   
@@ -166,9 +178,27 @@ const VisuallyHiddenInput = styled('input')({
   
     return (
       <Container id="features" sx={{ py: { xs: 8, sm: 16 } }}>
+        <Box sx={{ width: { sm: '100%', md: '60%' }, }}>
+        <Typography
+          component="h2"
+          variant="h4"
+          gutterBottom
+          sx={{ color: 'text.primary' }}
+        >
+          Product features
+        </Typography>
+        <Typography
+          variant="body1"
+          sx={{ color: 'text.secondary', mb: { xs: 2, sm: 4 } }}
+        >
+          Provide a brief overview of the key features of the product. For example,
+          you could list the number of features, their types or benefits, and
+          add-ons.
+        </Typography>
+      </Box>
         <Grid container spacing={6}>
             <Grid item xs={12} md={6}>
-                <Box sx={{ width: '100%', typography: 'body1' }}>
+                <Box sx={{ width: '100%',height:'450px', typography: 'body1' }}>
                 <TabContext value={value}>
                     <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
                     <TabList onChange={handleChange} aria-label="tabs example">
@@ -210,6 +240,7 @@ const VisuallyHiddenInput = styled('input')({
                             variant="contained"
                             color="primary"
                             fullWidth
+                            disabled={loading}
                         >
                             {loading ? <CircularProgress size={24} color="inherit" /> : "Submit"}
                         </Button>
@@ -245,6 +276,7 @@ const VisuallyHiddenInput = styled('input')({
                             variant="contained"
                             color="primary"
                             fullWidth
+                            disabled={loading}
                         >
                             {loading ? <CircularProgress size={24} color="inherit" /> : "Submit"}
                         </Button>
@@ -255,8 +287,15 @@ const VisuallyHiddenInput = styled('input')({
                 </Box>
             </Grid>
   
-            <Grid item xs={12} md={6}>
-                <Box sx={{ width: '100%', p: 3 }}>
+              <Grid item xs={12} md={6}>
+                <Box 
+                  sx={{ 
+                    width: '100%', 
+                    p: 3, 
+                    overflow: 'auto',  // Enable scrolling
+                    maxHeight: '400px' // Set a maximum height for the Box (adjust as needed)
+                }}
+                >
                     <Typography variant="h4" component="h2" sx={{ mb: 2 }}>
                     Summary
                     </Typography>
@@ -271,7 +310,7 @@ const VisuallyHiddenInput = styled('input')({
                         {parseSummary(result.summary)}
                         <Divider sx={{ mb: 2 }} />
                         <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                        Remaining Time: {result.remaining_time}
+                          Remaining Time: {result.remaining_time}
                         </Typography>
                     </Box>
                     ) : (
@@ -291,9 +330,14 @@ const VisuallyHiddenInput = styled('input')({
                     </Box>
                     )}
                 </Box>
-            </Grid>
-
+              </Grid>
         </Grid>
+
+        {/* Questions */}
+        <Grid item xs={12} sm={6}>
+          <Questions transcript={transcript} />
+        </Grid>
+        
       </Container>
     );
   }

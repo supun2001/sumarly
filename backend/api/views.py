@@ -14,10 +14,12 @@ from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
 from rest_framework.exceptions import NotFound
+import logging
 
 aai.settings.api_key = settings.API_KEY
 
 # Define constants
+logger = logging.getLogger(__name__)
 YTDLP_FNAME = 'downloads/%(title)s.%(ext)s'
 TRANSCRIPTION_PARAMS = {
     'answer_format': "**<part of the lesson>**\n<list of important points in that part>",
@@ -158,3 +160,37 @@ class DownloadAndTranscribeAPIView(APIView):
             os.remove(audio_path)
 
         return summary, new_time
+    
+
+class AskQuestionView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        # Get transcript and question from the request data
+        transcript = request.data.get('transcript')
+        question = request.data.get('question')
+        
+        # Initialize Lemur (ensure this matches the correct API usage)
+        lemur = aai.Lemur()
+
+        # Validate inputs
+        if not transcript or not question:
+            return Response({'error': 'Transcript and question are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Make the API call to get the result
+            result = lemur.task(
+                prompt=question, 
+                input_text=transcript,
+            )
+
+            # Check if result.response is a string
+            if isinstance(result.response, str):
+                # Directly use result.response as the answer
+                answer = result.response
+                return Response({'response': answer}, status=status.HTTP_200_OK)
+            else:
+                return Response({'error': 'Unexpected response format from Lemur'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
