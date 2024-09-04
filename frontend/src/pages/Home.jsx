@@ -5,6 +5,11 @@ import getMPTheme from '../theme/getMPTheme';
 import AppAppBar from '../components/AppAppBar';
 import Hero from '../components/Hero';
 import Features from '../components/Features';
+import Testimonials from '../components/Testimonials';
+import Highlights from '../components/Highlights';
+import Pricing from '../components/Pricing';
+import FAQ from '../components/FAQ';
+import Footer from "../components/Footer"
 // import TemplateFrame from './TemplateFrame';
 
 
@@ -41,9 +46,14 @@ function Home() {
       <CssBaseline enableColorScheme />
         <AppAppBar mode={mode} toggleColorMode={toggleColorMode} />
         <Hero />
+        <Features />
+
         <div>
-          <Features />
-          
+          <Testimonials />
+          <Highlights />
+          <Pricing />
+          <FAQ />
+          <Footer />
         </div>
       </ThemeProvider>
     );

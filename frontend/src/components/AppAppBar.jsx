@@ -34,6 +34,14 @@ export default function AppAppBar({ mode, toggleColorMode }) {
     setOpen(newOpen);
   };
 
+  // Function to handle smooth scrolling to a specific section
+  const handleScrollToSection = (sectionId) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <AppBar
       position="fixed"
@@ -44,22 +52,22 @@ export default function AppAppBar({ mode, toggleColorMode }) {
           <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', px: 0 }}>
             <Sitemark />
             <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
-              <Button variant="text" color="info" size="small">
+              <Button variant="text" color="info" size="small" onClick={() => handleScrollToSection('features')}>
                 Features
               </Button>
-              <Button variant="text" color="info" size="small">
+              <Button variant="text" color="info" size="small" onClick={() => handleScrollToSection('testimonials')}>
                 Testimonials
               </Button>
-              <Button variant="text" color="info" size="small">
+              <Button variant="text" color="info" size="small" onClick={() => handleScrollToSection('highlights')}>
                 Highlights
               </Button>
-              <Button variant="text" color="info" size="small">
+              <Button variant="text" color="info" size="small" onClick={() => handleScrollToSection('pricing')}>
                 Pricing
               </Button>
-              <Button variant="text" color="info" size="small" sx={{ minWidth: 0 }}>
+              <Button variant="text" color="info" size="small" onClick={() => handleScrollToSection('faq')}>
                 FAQ
               </Button>
-              <Button variant="text" color="info" size="small" sx={{ minWidth: 0 }}>
+              <Button variant="text" color="info" size="small" onClick={() => handleScrollToSection('blog')}>
                 Blog
               </Button>
             </Box>
@@ -101,12 +109,19 @@ export default function AppAppBar({ mode, toggleColorMode }) {
                   </IconButton>
                 </Box>
                 <Divider sx={{ my: 3 }} />
-                <MenuItem>Features</MenuItem>
-                <MenuItem>Testimonials</MenuItem>
-                <MenuItem>Highlights</MenuItem>
-                <MenuItem>Pricing</MenuItem>
-                <MenuItem>FAQ</MenuItem>
-                <MenuItem>Blog</MenuItem>
+                <MenuItem onClick={() => handleScrollToSection('features')}>Features</MenuItem>
+                <MenuItem onClick={() => handleScrollToSection('testimonials')}>Testimonials</MenuItem>
+                <MenuItem onClick={() => handleScrollToSection('highlights')}>Highlights</MenuItem>
+                <MenuItem onClick={() => handleScrollToSection('pricing')}>Pricing</MenuItem>
+                <MenuItem onClick={() => handleScrollToSection('faq')}>FAQ</MenuItem>
+                <MenuItem onClick={() => handleScrollToSection('blog')}>Blog</MenuItem>
+                <MenuItem>
+                  <ToggleColorMode
+                    data-screenshot="toggle-mode"
+                    mode={mode}
+                    toggleColorMode={toggleColorMode}
+                  />
+                </MenuItem>
                 <MenuItem>
                   <Button color="primary" variant="contained" fullWidth>
                     Sign up

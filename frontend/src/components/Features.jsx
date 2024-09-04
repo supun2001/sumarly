@@ -22,7 +22,7 @@ import Questions from "./Questions";
 
 const parseSummary = (text) => {
     if (!text) return null;
-  
+
     // Ensure text is a string
     const summaryText = typeof text === 'string' ? text : Array.isArray(text) ? text.join('\n') : '';
   
@@ -81,9 +81,7 @@ const VisuallyHiddenInput = styled('input')({
   export default function Features() {
     const [value, setValue] = React.useState('1');
     const [notes, setNotes] = useState([]);
-    const [user_type, setUsertype] = useState("");
     const [transcript, setTranscript] = useState("");
-    const [time, setTime] = useState("");
     const [youtubeUrl, setYoutubeUrl] = useState("");
     const [context, setContext] = useState("");
     const [file, setFile] = useState(null);
@@ -95,28 +93,16 @@ const VisuallyHiddenInput = styled('input')({
       setValue(newValue);
     };
   
-    useEffect(() => {
-      getNotes();
-    }, []);
-  
     const getNotes = () => {
       api
         .get("/api/notes/")
         .then((res) => {
           const notes = res.data;
           setNotes(notes);
-    
+  
           // Check if notes array is not empty
           if (Array.isArray(notes) && notes.length > 0) {
-            // Debugging: Log the notes to ensure correct data structure
-            // console.log("Notes data:", notes);
-    
-            // Extract the latest transcript
             const latestTranscript = notes[notes.length - 1].transcript;
-    
-            // Debugging: Log the latest transcript to verify
-            // console.log("Latest Transcript:", latestTranscript);
-    
             setTranscript(latestTranscript);
           } else {
             // Handle case when there are no notes
@@ -129,25 +115,10 @@ const VisuallyHiddenInput = styled('input')({
           alert("Error fetching notes");
         });
     };
-    
-    
-  
-    const createNote = (e) => {
-      e.preventDefault();
-      api
-        .post("/api/notes/", { user_type, transcript, time })
-        .then((res) => {
-          if (res.status === 201) alert("Note created!");
-          else alert("Failed to make note.");
-          getNotes();
-        })
-        .catch((err) => alert(err));
-    };
-  
     const handleTranscribeSubmit = async (e) => {
       e.preventDefault();
       setLoading(true);
-  
+
       const formData = new FormData();
       if (youtubeUrl) formData.append('url', youtubeUrl);
       if (context) formData.append('context', context);
@@ -161,6 +132,7 @@ const VisuallyHiddenInput = styled('input')({
         if (response.status === 200) {
           setResult(response.data);
           setError(null);
+          getNotes();
         } else {
           setError(response.data.error);
           setResult(null);
@@ -175,27 +147,11 @@ const VisuallyHiddenInput = styled('input')({
         setFile(null);
       }
     };
+
+    console.log(transcript)
   
     return (
-      <Container id="features" sx={{ py: { xs: 8, sm: 16 } }}>
-        <Box sx={{ width: { sm: '100%', md: '60%' }, }}>
-        <Typography
-          component="h2"
-          variant="h4"
-          gutterBottom
-          sx={{ color: 'text.primary' }}
-        >
-          Product features
-        </Typography>
-        <Typography
-          variant="body1"
-          sx={{ color: 'text.secondary', mb: { xs: 2, sm: 4 } }}
-        >
-          Provide a brief overview of the key features of the product. For example,
-          you could list the number of features, their types or benefits, and
-          add-ons.
-        </Typography>
-      </Box>
+    <Container id="features" sx={{ py: { xs: 8, sm: 16 },pb: { xs: 0, sm: 0 }, mb:0 }}>
         <Grid container spacing={6}>
             <Grid item xs={12} md={6}>
                 <Box sx={{ width: '100%',height:'450px', typography: 'body1' }}>
@@ -292,8 +248,8 @@ const VisuallyHiddenInput = styled('input')({
                   sx={{ 
                     width: '100%', 
                     p: 3, 
-                    overflow: 'auto',  // Enable scrolling
-                    maxHeight: '400px' // Set a maximum height for the Box (adjust as needed)
+                    overflow: 'auto',
+                    maxHeight: '400px' 
                 }}
                 >
                     <Typography variant="h4" component="h2" sx={{ mb: 2 }}>
@@ -307,7 +263,7 @@ const VisuallyHiddenInput = styled('input')({
                     </Box>
                     ) : result ? (
                     <Box sx={{ mb: 3 }}>
-                        {parseSummary(result.summary)}
+                        {parseSummary(result.summary)} 
                         <Divider sx={{ mb: 2 }} />
                         <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
                           Remaining Time: {result.remaining_time}
@@ -332,12 +288,11 @@ const VisuallyHiddenInput = styled('input')({
                 </Box>
               </Grid>
         </Grid>
-
         {/* Questions */}
+
         <Grid item xs={12} sm={6}>
           <Questions transcript={transcript} />
         </Grid>
-        
       </Container>
     );
   }

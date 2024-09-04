@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, TextField, IconButton, Typography } from '@mui/material';
+import { Box, TextField, IconButton, Typography, CircularProgress } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import api from "../api"; // Adjust the import as needed
 
@@ -13,6 +13,12 @@ export default function Questions({ transcript }) {
             setMessages([...messages, { text: message, sender: 'user' }]);
             setMessage('');
 
+            // Add a "typing" indicator
+            setMessages(prevMessages => [
+                ...prevMessages,
+                { text: 'typing...', sender: 'bot', isTyping: false },
+            ]);
+
             if (transcript) {
                 try {
                     const response = await api.post('/api/ask-question/', {
@@ -22,25 +28,26 @@ export default function Questions({ transcript }) {
 
                     if (response.status === 200) {
                         const formattedAnswer = formatResponse(response.data.response);
+                        // Remove the "typing" indicator and add the actual response
                         setMessages(prevMessages => [
-                            ...prevMessages,
+                            ...prevMessages.slice(0, -1), // Remove the last "typing" indicator
                             { text: formattedAnswer, sender: 'bot' },
                         ]);
                     } else {
                         setMessages(prevMessages => [
-                            ...prevMessages,
+                            ...prevMessages.slice(0, -1), // Remove the last "typing" indicator
                             { text: 'Error: Could not retrieve the answer.', sender: 'bot' },
                         ]);
                     }
                 } catch (err) {
                     setMessages(prevMessages => [
-                        ...prevMessages,
+                        ...prevMessages.slice(0, -1), // Remove the last "typing" indicator
                         { text: `Error: ${err.message}`, sender: 'bot' },
                     ]);
                 }
             } else {
                 setMessages(prevMessages => [
-                    ...prevMessages,
+                    ...prevMessages.slice(0, -1), // Remove the last "typing" indicator
                     { text: 'Error: No transcript available.', sender: 'bot' },
                 ]);
             }
@@ -73,6 +80,8 @@ export default function Questions({ transcript }) {
             mx="auto"
             bgcolor="background.default"
             p={2}
+            mb={0}
+            padding={0}
         >
             <Box sx={{ width: { sm: '100%'} }}>
                 <Typography
@@ -118,8 +127,13 @@ export default function Questions({ transcript }) {
                             sx={{ wordWrap: 'break-word' }} // Correct property name
                             dangerouslySetInnerHTML={{ __html: msg.text }} // Render HTML content
                         />
+                        {/* Show CircularProgress if it's a typing indicator */}
+                        {msg.isTyping && (
+                            <CircularProgress size={20} sx={{ ml: 1, alignSelf: 'center' }} />
+                        )}
                     </Box>
                 ))}
+
                 <div ref={messagesEndRef} />
             </Box>
 
