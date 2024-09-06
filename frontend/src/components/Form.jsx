@@ -58,7 +58,7 @@ function Form({ route, method }) {
                 </button>
                 
             </form>
-            <SignInSide />
+            <SignInSide route="/api/token/" method="login"/>
         </>
         
     );

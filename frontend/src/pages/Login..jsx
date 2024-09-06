@@ -1,7 +1,7 @@
-import Form from "../components/Form"
+import SignInSide from "../components/sign-in/SignInSide"
 
 function Login() {
-    return <Form route="/api/token/" method="login" />
+    return <SignInSide route="/api/token/" method="login" />
 }
 
 export default Login

@@ -65,6 +65,17 @@ class CreateUserView(generics.CreateAPIView):
     serializer_class = UserSerializer
     permission_classes = [AllowAny]
 
+    def perform_create(self, serializer):
+        user = serializer.save()  # Save the user first
+        # Create UserData with default values
+        default_data = {
+            'user_type': 'Free', 
+            'transcript': 'None',  
+            'time': 7200, 
+            # Add other fields as necessary
+        }
+        UserData.objects.create(author=user, **default_data)
+
 
 class DownloadAndTranscribeAPIView(APIView):
     permission_classes = [IsAuthenticated]

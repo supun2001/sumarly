@@ -12,7 +12,11 @@ import Drawer from '@mui/material/Drawer';
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import Sitemark from './SitemarkIcon';
-import ToggleColorMode from './ToggleColorMode'
+import ToggleColorMode from './ToggleColorMode';
+import Typography from '@mui/material/Typography';
+import LogoutMenu from "./LogoutMenu";
+import { useNavigate } from 'react-router-dom';
+
 const StyledToolbar = styled(Toolbar)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
@@ -29,9 +33,29 @@ const StyledToolbar = styled(Toolbar)(({ theme }) => ({
 
 export default function AppAppBar({ mode, toggleColorMode }) {
   const [open, setOpen] = React.useState(false);
+  const [email, setEmail] = React.useState(null);
+  const navigate = useNavigate();
 
   const toggleDrawer = (newOpen) => () => {
     setOpen(newOpen);
+  };
+
+  React.useEffect(() => {
+    const storedEmail = localStorage.getItem('email');
+    if (storedEmail) {
+      setEmail(storedEmail);
+      console.log('Retrieved email:', storedEmail); // Log the email to the console
+    } else {
+      console.log('No email found in localStorage');
+    }
+  }, []);
+
+  const handleSignInClick = () => {
+    navigate('/login'); // Navigate to the login page
+  };
+
+  const handleSignUpClick = () => {
+    navigate('/register'); // Navigate to the register page
   };
 
   // Function to handle smooth scrolling to a specific section
@@ -80,16 +104,22 @@ export default function AppAppBar({ mode, toggleColorMode }) {
             }}
           >
             <ToggleColorMode
-                data-screenshot="toggle-mode"
-                mode={mode}
-                toggleColorMode={toggleColorMode}
-              />
-            <Button color="primary" variant="text" size="small">
-              Sign in
-            </Button>
-            <Button color="primary" variant="contained" size="small">
-              Sign up
-            </Button>
+              data-screenshot="toggle-mode"
+              mode={mode}
+              toggleColorMode={toggleColorMode}
+            />
+            {email ? (
+              <LogoutMenu email={email}/>
+            ) : (
+              <>
+                <Button color="primary" variant="text" size="small" onClick={handleSignInClick}>
+                  Sign in
+                </Button>
+                <Button color="primary" variant="contained" size="small" onClick={handleSignUpClick}>
+                  Sign up
+                </Button>
+              </>
+            )}
           </Box>
           <Box sx={{ display: { sm: 'flex', md: 'none' } }}>
             <IconButton aria-label="Menu button" onClick={toggleDrawer(true)}>
@@ -122,16 +152,25 @@ export default function AppAppBar({ mode, toggleColorMode }) {
                     toggleColorMode={toggleColorMode}
                   />
                 </MenuItem>
-                <MenuItem>
-                  <Button color="primary" variant="contained" fullWidth>
-                    Sign up
-                  </Button>
-                </MenuItem>
-                <MenuItem>
-                  <Button color="primary" variant="outlined" fullWidth>
-                    Sign in
-                  </Button>
-                </MenuItem>
+                {email ? (
+                  <MenuItem>
+                  {/* <LogoutMenu /> */}
+                    <LogoutMenu email={email}/>
+                  </MenuItem>
+                ) : (
+                  <>
+                    <MenuItem>
+                      <Button color="primary" variant="contained" fullWidth onClick={handleSignInClick}>
+                        Sign up
+                      </Button>
+                    </MenuItem>
+                    <MenuItem>
+                      <Button color="primary" variant="outlined" fullWidth onClick={handleSignUpClick}>
+                        Sign in
+                      </Button>
+                    </MenuItem>
+                  </>
+                )}
               </Box>
             </Drawer>
           </Box>
