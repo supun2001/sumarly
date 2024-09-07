@@ -1,22 +1,28 @@
+from django.core.mail import send_mail
+from django.urls import reverse
+from django.conf import settings
+from django.utils import timezone
+from django.shortcuts import get_object_or_404
+from rest_framework import status, generics
 from rest_framework.response import Response
-from rest_framework import status
-from .models import *
-from .serializer import *
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.exceptions import NotFound
+from .models import User, UserData, EmailConfirmationToken
+from .serializer import UserSerializer, UserDataSerializer
 from yt_dlp import YoutubeDL
 import os
 import hashlib
 import assemblyai as aai
-from django.conf import settings
-from django.core.files.storage import default_storage
 from mutagen.mp3 import MP3
-from django.shortcuts import get_object_or_404
-from rest_framework import generics
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.views import APIView
-from rest_framework.exceptions import NotFound
+import boto3
 import logging
 
+# Set up AssemblyAI API key
 aai.settings.api_key = settings.API_KEY
+
+# AWS S3 client setup
+s3_client = boto3.client('s3')
 
 # Define constants
 logger = logging.getLogger(__name__)
@@ -37,6 +43,56 @@ def generate_file_hash(file_path):
             hasher.update(chunk)
     return hasher.hexdigest()
 
+class CreateUserView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [AllowAny]
+
+    def perform_create(self, serializer):
+        user = serializer.save()  # Save the user first
+
+        # Create UserData with default values
+        default_data = {
+            'user_type': 'Free',
+            'transcript': 'None',
+            'time': 7200,
+        }
+        UserData.objects.create(author=user, **default_data)
+
+        # Create and send confirmation token
+        token = EmailConfirmationToken.objects.create(user=user)
+        self.send_confirmation_email(user, token.token)
+
+    def send_confirmation_email(self, user, token):
+        confirmation_url = reverse('confirm_email', kwargs={'token': token})
+        full_url = settings.SITE_URL + confirmation_url
+        print(full_url)
+
+        subject = "Confirm your email address"
+        message = f"Hi {user.username},\n\nPlease confirm your email address by clicking the following link:\n{full_url}"
+        from_email = settings.DEFAULT_FROM_EMAIL
+
+        send_mail(subject, message, from_email, [user.email])
+
+class ConfirmEmailView(APIView):
+    def get(self, request, token):
+        confirmation_token = get_object_or_404(EmailConfirmationToken, token=token)
+
+        if confirmation_token.confirmed:
+            return Response({"message": "Email already confirmed"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if timezone.now() - confirmation_token.created_at > timezone.timedelta(hours=24):
+            return Response({"message": "Token expired"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = confirmation_token.user
+        user.is_active = True
+        user.save()
+
+        confirmation_token.confirmed = True
+        confirmation_token.save()
+
+        return Response({"message": "Email confirmed successfully"}, status=status.HTTP_200_OK)
+
 class UserDataListCreate(generics.ListCreateAPIView):
     serializer_class = UserDataSerializer
     permission_classes = [IsAuthenticated]
@@ -51,7 +107,6 @@ class UserDataListCreate(generics.ListCreateAPIView):
         else:
             print(serializer.errors)
 
-
 class UserDataDelete(generics.DestroyAPIView):
     serializer_class = UserDataSerializer
     permission_classes = [IsAuthenticated]
@@ -59,23 +114,6 @@ class UserDataDelete(generics.DestroyAPIView):
     def get_queryset(self):
         user = self.request.user
         return UserData.objects.filter(author=user)
-
-class CreateUserView(generics.CreateAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-    permission_classes = [AllowAny]
-
-    def perform_create(self, serializer):
-        user = serializer.save()  # Save the user first
-        # Create UserData with default values
-        default_data = {
-            'user_type': 'Free', 
-            'transcript': 'None',  
-            'time': 7200, 
-            # Add other fields as necessary
-        }
-        UserData.objects.create(author=user, **default_data)
-
 
 class DownloadAndTranscribeAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -93,20 +131,21 @@ class DownloadAndTranscribeAPIView(APIView):
                 return Response({"error": "URL is required"}, status=status.HTTP_400_BAD_REQUEST)
 
             try:
-                audio_path = self.download_from_youtube(youtube_url)
+                audio_path, s3_file_key = self.download_from_youtube(youtube_url)
             except Exception as e:
                 return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         # Handle file upload input
         elif 'file' in request.FILES:
             uploaded_file = request.FILES['file']
-            audio_path = self.save_uploaded_file(uploaded_file)
+            s3_file_key = self.save_uploaded_file_to_s3(uploaded_file)
+            audio_path = uploaded_file.name  # This can be used for processing if needed
         else:
             return Response({"error": "No URL or file provided"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Process transcription and summarization
         try:
-            summary, new_time = self.transcribe_and_summarize(audio_path, user_id, context)
+            summary, new_time = self.transcribe_and_summarize(s3_file_key, user_id, context)
             return Response({
                 "status": "success",
                 "summary": summary,
@@ -118,7 +157,7 @@ class DownloadAndTranscribeAPIView(APIView):
     def download_from_youtube(self, youtube_url):
         ydl_opts = {
             'format': 'bestaudio/best',
-            'outtmpl': 'downloads/%(title)s.%(ext)s',
+            'outtmpl': '/tmp/%(title)s.%(ext)s',  # Use /tmp for temporary storage
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'mp3',
@@ -126,27 +165,37 @@ class DownloadAndTranscribeAPIView(APIView):
             }],
         }
 
-        os.makedirs('downloads', exist_ok=True)
-
         with YoutubeDL(ydl_opts) as ydl:
             ydl.download([youtube_url])
 
-        downloaded_files = [file for file in os.listdir('downloads') if file.endswith('.mp3')]
+        downloaded_files = [file for file in os.listdir('/tmp') if file.endswith('.mp3')]
         if not downloaded_files:
             raise FileNotFoundError("No MP3 files found after download.")
 
-        return os.path.join('downloads', downloaded_files[0])
+        local_file_path = os.path.join('/tmp', downloaded_files[0])
+        s3_file_key = f'downloads/{downloaded_files[0]}'
 
-    def save_uploaded_file(self, uploaded_file):
-        file_path = os.path.join('downloads', uploaded_file.name)
-        with default_storage.open(file_path, 'wb+') as destination:
-            for chunk in uploaded_file.chunks():
-                destination.write(chunk)
-        return file_path
+        self.upload_to_s3(local_file_path, s3_file_key)
 
-    def transcribe_and_summarize(self, audio_path, user_id, context):
+        os.remove(local_file_path)  # Clean up the local file after uploading
+
+        return local_file_path, s3_file_key
+
+    def save_uploaded_file_to_s3(self, uploaded_file):
+        s3_file_key = f'uploads/{uploaded_file.name}'
+        s3_client.upload_fileobj(uploaded_file, settings.AWS_STORAGE_BUCKET_NAME, s3_file_key)
+        return s3_file_key
+
+    def upload_to_s3(self, file_path, s3_file_key):
+        s3_client.upload_file(file_path, settings.AWS_STORAGE_BUCKET_NAME, s3_file_key)
+
+    def transcribe_and_summarize(self, s3_file_key, user_id, context):
+        # Download the file from S3 to a temporary local path for processing
+        local_file_path = f'/tmp/{os.path.basename(s3_file_key)}'
+        s3_client.download_file(settings.AWS_STORAGE_BUCKET_NAME, s3_file_key, local_file_path)
+
         transcriber = aai.Transcriber()
-        transcript = transcriber.transcribe(audio_path)
+        transcript = transcriber.transcribe(local_file_path)
 
         params = TRANSCRIPTION_PARAMS.copy()
         if context:
@@ -154,7 +203,7 @@ class DownloadAndTranscribeAPIView(APIView):
         
         summary = transcript.lemur.summarize(**params).response.strip().split('\n')
 
-        audio_length = get_audio_length(audio_path)
+        audio_length = get_audio_length(local_file_path)
 
         new_time = None
         if user_id:
@@ -167,11 +216,9 @@ class DownloadAndTranscribeAPIView(APIView):
             user_data.transcript = transcript
             user_data.save()
 
-        if 'url' in self.request.data:
-            os.remove(audio_path)
+        os.remove(local_file_path)  # Clean up the local file after processing
 
         return summary, new_time
-    
 
 class AskQuestionView(APIView):
     permission_classes = [AllowAny]

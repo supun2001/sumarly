@@ -6,4 +6,7 @@ urlpatterns = [
     path("notes/delete/<int:pk>/", views.UserDataDelete.as_view(), name="delete-note"),
     path('sumary/',views.DownloadAndTranscribeAPIView.as_view(),name="download_youtube_video"),
     path('ask-question/', views.AskQuestionView.as_view(), name='ask-question'),
+    path('register/', views.CreateUserView.as_view(), name='register'),
+    path('confirm-email/<uuid:token>/', views.ConfirmEmailView.as_view(), name='confirm_email'),
 ]
+
