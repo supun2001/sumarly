@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.exceptions import NotFound
-from .models import User, UserData, EmailConfirmationToken
+from .models import User, UserData
 from .serializer import UserSerializer, UserDataSerializer
 from yt_dlp import YoutubeDL
 import os
@@ -55,28 +55,25 @@ class CreateUserView(generics.CreateAPIView):
         default_data = {
             'user_type': 'Free',
             'transcript': 'None',
-            'time': 7200,
         }
         UserData.objects.create(author=user, **default_data)
 
         # Create and send confirmation token
-        token = EmailConfirmationToken.objects.create(user=user)
+        token = UserData.objects.create(author=user)
         self.send_confirmation_email(user, token.token)
 
     def send_confirmation_email(self, user, token):
-        confirmation_url = reverse('confirm_email', kwargs={'token': token})
-        full_url = settings.SITE_URL + confirmation_url
-        print(full_url)
+        full_url = f"{settings.SITE_URL}confirm_email?token={token}"
 
         subject = "Confirm your email address"
         message = f"Hi {user.username},\n\nPlease confirm your email address by clicking the following link:\n{full_url}"
         from_email = settings.DEFAULT_FROM_EMAIL
 
-        send_mail(subject, message, from_email, [user.email])
+        send_mail(subject, message, from_email, [user.username])
 
 class ConfirmEmailView(APIView):
     def get(self, request, token):
-        confirmation_token = get_object_or_404(EmailConfirmationToken, token=token)
+        confirmation_token = get_object_or_404(UserData, token=token)
 
         if confirmation_token.confirmed:
             return Response({"message": "Email already confirmed"}, status=status.HTTP_400_BAD_REQUEST)
@@ -84,7 +81,7 @@ class ConfirmEmailView(APIView):
         if timezone.now() - confirmation_token.created_at > timezone.timedelta(hours=24):
             return Response({"message": "Token expired"}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = confirmation_token.user
+        user = confirmation_token.author
         user.is_active = True
         user.save()
 
@@ -229,7 +226,10 @@ class AskQuestionView(APIView):
         question = request.data.get('question')
         
         # Initialize Lemur (ensure this matches the correct API usage)
-        lemur = aai.Lemur()
+        try:
+            lemur = aai.Lemur()  # Ensure this initialization matches the API's requirements
+        except Exception as e:
+            return Response({'error': f'Failed to initialize Lemur: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         # Validate inputs
         if not transcript or not question:
@@ -244,6 +244,10 @@ class AskQuestionView(APIView):
 
             # Check if result.response is a string
             if isinstance(result.response, str):
+                # Check if the response indicates an issue with copyrighted material
+                if "copyrighted material" in result.response.lower():
+                    return Response({'error': 'Cannot process copyrighted material'}, status=status.HTTP_400_BAD_REQUEST)
+                
                 # Directly use result.response as the answer
                 answer = result.response
                 return Response({'response': answer}, status=status.HTTP_200_OK)
@@ -251,4 +255,4 @@ class AskQuestionView(APIView):
                 return Response({'error': 'Unexpected response format from Lemur'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': f'An error occurred: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)

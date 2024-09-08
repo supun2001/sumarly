@@ -17,7 +17,7 @@ import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
 import CircularProgress from '@mui/material/CircularProgress';
 import Questions from "./Questions";
-import { Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
+import { Dialog, DialogActions, DialogContent, DialogTitle,Snackbar, Alert } from '@mui/material';
 import DialogContentText from '@mui/material/DialogContentText';
 import { useNavigate } from 'react-router-dom';
 
@@ -91,13 +91,17 @@ export default function Features() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = React.useState(null);
   const [openAlert, setOpenAlert] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertSeverity, setAlertSeverity] = useState("info");
   const [loginConfirmed, setLoginConfirmed] = useState(false);
+  const [userConfrimation, setUserConfrimation] = useState(false);
 
   const navigate = useNavigate();
 
   useEffect(() => {
+    getNotes()
     if (loginConfirmed) {
-        navigate('/login'); // Navigate to login after logout
+      navigate('/login'); // Navigate to login after logout
     }
   }, [loginConfirmed, navigate]);
 
@@ -105,9 +109,10 @@ export default function Features() {
     const storedEmail = localStorage.getItem('email');
     if (storedEmail) {
       setEmail(storedEmail);
-      console.log('Retrieved email:', storedEmail); // Log the email to the console
     } else {
-      console.log('No email found in localStorage');
+      setAlertMessage("Please login!");
+      setAlertSeverity("error");
+      setOpenAlert(true);
     }
   }, []);
 
@@ -121,32 +126,73 @@ export default function Features() {
       .get("/api/notes/")
       .then((res) => {
         const notes = res.data;
-        setNotes(notes);
-
-        // Check if notes array is not empty
-        if (Array.isArray(notes) && notes.length > 0) {
-          const latestTranscript = notes[notes.length - 1].transcript;
-          setTranscript(latestTranscript);
+  
+        if (Array.isArray(notes)) {
+          setNotes(notes);
+  
+          // Check if notes array has at least one item
+          if (notes.length > 0) {
+            const firstNote = notes[0]; // Access the first item in the array
+            const firstTranscript = firstNote.transcript;
+            setTranscript(firstTranscript);
+          } else {
+            setTranscript(null);
+          }
         } else {
-          // Handle case when there are no notes
-          setTranscript(null);
+          setAlertMessage("Unexpected data format received.");
+          setAlertSeverity("error");
+          setOpenAlert(true);
         }
       })
       .catch((err) => {
-        // Handle errors
         console.error("Error fetching notes:", err);
-        alert("Error fetching notes");
+        setAlertMessage("Error fetching notes: " + (err.response?.data?.message || err.message));
+        setAlertSeverity("error");
+        setOpenAlert(true);
       });
   };
+  console.log(transcript)
+  // const getUserConfrimation = () => {
+  //   api
+  //     .get("/api/notes/")
+  //     .then((res) => {
+  //       const notes = res.data;
+  
+  //       if (Array.isArray(notes)) {
+  //         setNotes(notes);
+  
+  //         // Check if notes array has at least one item
+  //         if (notes.length > 0) {
+  //           const firstNote = notes[0]; // Access the first item in the array
+  //           const firstTranscript = firstNote.confirmed;
+  //           setUserConfrimation(firstTranscript);
+  //         } else {
+  //           setUserConfrimation(false);
+  //         }
+  //       } else {
+  //         setAlertMessage("Unexpected data format received.");
+  //         setAlertSeverity("error");
+  //         setOpenAlert(true);
+  //       }
+  //     })
+  //     .catch((err) => {
+  //       console.error("Error fetching notes:", err);
+  //       setAlertMessage("Error fetching notes: " + (err.response?.data?.message || err.message));
+  //       setAlertSeverity("error");
+  //       setOpenAlert(true);
+  //     });
+  // };
+
   const handleTranscribeSubmit = async (e) => {
     e.preventDefault();
 
     // Check if email exists
     if (!email) {
+      setAlertMessage("You need to log in to access this feature.");
+      setAlertSeverity("warning");
       setOpenAlert(true);
       return;
     }
-
     setLoading(true);
 
     const formData = new FormData();
@@ -179,12 +225,27 @@ export default function Features() {
   };
   const handleClose = () => {
     setOpenAlert(false);
-    setLoginConfirmed(true)
+    if (alertSeverity === "success") {
+      setLoginConfirmed(true);
+    }
   };
-  console.log(transcript)
+  
 
   return (
     <Container id="features" sx={{ py: { xs: 8, sm: 16 }, pb: { xs: 0, sm: 0 }, mb: 0 }}>
+      <Snackbar
+        open={openAlert}
+        autoHideDuration={6000}
+        onClose={handleClose}
+      >
+        <Alert
+          onClose={handleClose}
+          severity={alertSeverity}
+          sx={{ width: '100%' }}
+        >
+          {alertMessage}
+        </Alert>
+      </Snackbar>
       <Dialog
         open={openAlert}
         aria-labelledby="alert-dialog-title"
@@ -199,9 +260,9 @@ export default function Features() {
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-        <Button onClick={handleClose} autoFocus>
-                        Ok
-                    </Button>
+          <Button onClick={handleClose} autoFocus>
+            Ok
+          </Button>
         </DialogActions>
       </Dialog>
       <Grid container spacing={6}>

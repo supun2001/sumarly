@@ -48,7 +48,7 @@ export default function Questions({ transcript }) {
             } else {
                 setMessages(prevMessages => [
                     ...prevMessages.slice(0, -1), // Remove the last "typing" indicator
-                    { text: 'Error: No transcript available.', sender: 'bot' },
+                    { text: 'Something went wrong please refresh the page', sender: 'bot' },
                 ]);
             }
         }
