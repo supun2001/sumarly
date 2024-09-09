@@ -123,7 +123,7 @@ class UserDataDelete(generics.DestroyAPIView):
         return UserData.objects.filter(author=user)
 
 class DownloadAndTranscribeAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     
     def post(self, request, *args, **kwargs):
         user = request.user
@@ -152,11 +152,19 @@ class DownloadAndTranscribeAPIView(APIView):
 
         # Process transcription and summarization
         try:
-            summary, new_time = self.transcribe_and_summarize(s3_file_key, user_id, context)
+            user_data = UserData.objects.filter(author_id=user_id).first()
+            if not user_data:
+                return Response({"error": "UserData not found for the given user_id"}, status=status.HTTP_404_NOT_FOUND)
+
+            current_time = user_data.time
+            if current_time >= 0:
+                return Response({"error": "Your time limit is over"}, status=status.HTTP_403_FORBIDDEN)
+
+            summary, new_time = self.transcribe_and_summarize(s3_file_key, user_id, context, current_time)
             return Response({
                 "status": "success",
                 "summary": summary,
-                "remaining_time": new_time if user_id else None
+                "remaining_time": new_time
             })
         except Exception as e:
             return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -196,7 +204,7 @@ class DownloadAndTranscribeAPIView(APIView):
     def upload_to_s3(self, file_path, s3_file_key):
         s3_client.upload_file(file_path, settings.AWS_STORAGE_BUCKET_NAME, s3_file_key)
 
-    def transcribe_and_summarize(self, s3_file_key, user_id, context):
+    def transcribe_and_summarize(self, s3_file_key, user_id, context, current_time):
         # Download the file from S3 to a temporary local path for processing
         local_file_path = f'/tmp/{os.path.basename(s3_file_key)}'
         s3_client.download_file(settings.AWS_STORAGE_BUCKET_NAME, s3_file_key, local_file_path)
@@ -212,13 +220,9 @@ class DownloadAndTranscribeAPIView(APIView):
 
         audio_length = get_audio_length(local_file_path)
 
-        new_time = None
-        if user_id:
-            user_data = UserData.objects.filter(author_id=user_id).first()
-            if not user_data:
-                raise NotFound(detail="UserData not found for the given user_id")
-            current_time = user_data.time
-            new_time = max(current_time - audio_length, 0)
+        new_time = max(current_time - audio_length, 0)
+        user_data = UserData.objects.filter(author_id=user_id).first()
+        if user_data:
             user_data.time = new_time
             user_data.transcript = transcript
             user_data.save()

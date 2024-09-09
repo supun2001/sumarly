@@ -90,15 +90,13 @@ export default function Questions({ transcript, userConfirmation }) {
                     gutterBottom
                     sx={{ color: 'text.primary' }}
                 >
-                    Ask Questions
+                    Instant Summaries and Q&A
                 </Typography>
                 <Typography
                     variant="body1"
                     sx={{ color: 'text.secondary', mb: { xs: 2, sm: 4 } }}
                 >
-                    Provide a brief overview of the key features of the product. For example,
-                    you could list the number of features, their types or benefits, and
-                    add-ons.
+                    Submit a YouTube link or file to receive a concise summary. Plus, ask any questions about your audio clip to get detailed answers and insights.
                 </Typography>
             </Box>
             {userConfirmation ? (

@@ -18,10 +18,10 @@ const tiers = [
     title: 'Free',
     price: '0',
     description: [
-      '10 users included',
-      '2 GB of storage',
-      'Help center access',
-      'Email support',
+      '120 Minutes per Month',
+      'Perfect for Light Users',
+      'Access Mobile App',
+      '24/7 support',
     ],
     buttonText: 'Sign up for free',
     buttonVariant: 'outlined',
@@ -30,14 +30,14 @@ const tiers = [
   {
     title: 'Professional',
     subheader: 'Recommended',
-    price: '15',
+    price: '17',
     description: [
-      '20 users included',
-      '10 GB of storage',
-      'Help center access',
+      '1000 Minutes per Month',
+      'Best for Regular Users',
+      'Download PDF',
       'Priority email support',
-      'Dedicated team',
       'Best deals',
+      '24/7 support',
     ],
     buttonText: 'Start now',
     buttonVariant: 'contained',
@@ -47,10 +47,11 @@ const tiers = [
     title: 'Enterprise',
     price: '30',
     description: [
-      '50 users included',
-      '30 GB of storage',
+      'Custom Solutions & Unlimited Minutes',
+      'Tailored for Organisations',
       'Help center access',
       'Phone & email support',
+      '50% off',
     ],
     buttonText: 'Contact us',
     buttonVariant: 'outlined',
@@ -60,29 +61,32 @@ const tiers = [
 
 export default function Pricing() {
   const navigate = useNavigate();
-  const [email, setEmail] = React.useState(false)
+  const [email, setEmail] = React.useState(false);
 
   const getEmail = () => {
-    const storedEmail = localStorage.getItem('Email');
-    if (storedEmail) {
-      setEmail(storedEmail);
-    } else {
-      setEmail(null);
-    }
+    const storedEmail = localStorage.getItem('email');
+    setEmail(!!storedEmail);  // Converts to true if storedEmail exists, false otherwise
   };
 
-  // Call getEmail when the component mounts
   React.useEffect(() => {
     getEmail();
   }, []);
 
-  const handleButtonClick = (action) => {
-    if (email) {
-      navigate(action);
-    } else {
-      navigate('/login');
+  const handleButtonClick = (tierTitle) => {
+    if (tierTitle === 'Free') {
+      if(email){
+        window.location.reload(); 
+      }else{
+        navigate('/login');
+      }
+    } else if (tierTitle === 'Professional') {
+      navigate('/buy');
+    } else if (tierTitle === 'Enterprise') {
+      navigate('/contact');
     }
   };
+
+  console.log('Email : '+email)
 
   return (
     <Container
@@ -221,24 +225,14 @@ export default function Pricing() {
                 ))}
               </CardContent>
               <CardActions>
-                {email ? (
                 <Button
-                fullWidth
-                variant={tier.buttonVariant}
-                color={tier.buttonColor}
-              >
-                Buys
-              </Button>
-                ):(
-                  <Button
                   fullWidth
                   variant={tier.buttonVariant}
                   color={tier.buttonColor}
+                  onClick={() => handleButtonClick(tier.title)}
                 >
                   {tier.buttonText}
                 </Button>
-                )}
-
               </CardActions>
             </Card>
           </Grid>

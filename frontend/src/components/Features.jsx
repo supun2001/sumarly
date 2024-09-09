@@ -116,7 +116,7 @@ export default function Features() {
     }
   }, []);
 
-
+  console.log(email)
   const handleChange = (event, newValue) => {
     setValue(newValue);
   };
@@ -146,10 +146,10 @@ export default function Features() {
         }
       })
       .catch((err) => {
-        console.error("Error fetching data:", err);
-        setAlertMessage("Error fetching data: " + (err.response?.data?.message || err.message));
-        setAlertSeverity("error");
-        setOpenAlert(true);
+        // console.error("Error fetching data:", err);
+        // setAlertMessage("Error fetching data: " + (err.response?.data?.message || err.message));
+        // setAlertSeverity("error");
+        // setOpenAlert(true);
       });
   };
   console.log(transcript)
@@ -164,6 +164,11 @@ export default function Features() {
       setAlertMessage("You need to log in to access this feature.");
       setAlertSeverity("warning");
       setOpenAlert(true);
+      // Delay the navigation by 2 seconds (2000 milliseconds)
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
+    
       return;
     }
     setLoading(true);
@@ -177,7 +182,7 @@ export default function Features() {
       const response = await api.post('/api/sumary/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-
+    
       if (response.status === 200) {
         setResult(response.data);
         setError(null);
@@ -187,14 +192,21 @@ export default function Features() {
         setResult(null);
       }
     } catch (err) {
-      setError('Fetch Error: ' + err.message);
-      setResult(null);
+      if (err.response?.status === 403) {
+        setAlertMessage("Your time limit is over. Please try again next month or upgrade the package.");
+        setAlertSeverity("warning");
+        setOpenAlert(true);
+      } else {
+        setError('Fetch Error: ' + err.message);
+        setResult(null);
+      }
     } finally {
       setLoading(false);
       setYoutubeUrl("");
       setContext("");
       setFile(null);
     }
+    
   };
   const handleClose = () => {
     setOpenAlert(false);
@@ -225,11 +237,11 @@ export default function Features() {
         aria-describedby="alert-dialog-description"
       >
         <DialogTitle id="alert-dialog-title">
-          {"Login"}
+          {"Sumarly"}
         </DialogTitle>
         <DialogContent>
           <DialogContentText id="alert-dialog-description">
-            You need to log in to access this feature. Please log in first to proceed with getting a summary.
+            {alertMessage}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -277,7 +289,25 @@ export default function Features() {
                   />
 
                   <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-                    {userConfirmation ? (
+                    {email ? (
+                      userConfirmation ? (
+                        <Button
+                          type="submit"
+                          variant="contained"
+                          color="primary"
+                          fullWidth
+                          disabled={loading}
+                        >
+                          {loading ? <CircularProgress size={24} color="inherit" /> : "Submit"}
+                        </Button>
+                      ) : (
+                        <Box sx={{ textAlign: 'center', width: '100%' }}>
+                          <Typography variant="h5" component="h5" sx={{ mb: 2 }}>
+                            Please verify your email
+                          </Typography>
+                        </Box>
+                      )
+                    ) : (
                       <Button
                         type="submit"
                         variant="contained"
@@ -287,14 +317,9 @@ export default function Features() {
                       >
                         {loading ? <CircularProgress size={24} color="inherit" /> : "Submit"}
                       </Button>
-                    ) : (
-                      <Box sx={{ textAlign: 'center', width: '100%' }}>
-                        <Typography variant="h5" component="h5" sx={{ mb: 2 }}>
-                          Please verify your email
-                        </Typography>
-                      </Box>
                     )}
                   </Box>
+
 
                 </form>
               </TabPanel>
@@ -322,7 +347,25 @@ export default function Features() {
                   />
 
                   <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-                    {userConfirmation ? (
+                    {email ? (
+                      userConfirmation ? (
+                        <Button
+                          type="submit"
+                          variant="contained"
+                          color="primary"
+                          fullWidth
+                          disabled={loading}
+                        >
+                          {loading ? <CircularProgress size={24} color="inherit" /> : "Submit"}
+                        </Button>
+                      ) : (
+                        <Box sx={{ textAlign: 'center', width: '100%' }}>
+                          <Typography variant="h5" component="h5" sx={{ mb: 2 }}>
+                            Please verify your email
+                          </Typography>
+                        </Box>
+                      )
+                    ) : (
                       <Button
                         type="submit"
                         variant="contained"
@@ -332,14 +375,9 @@ export default function Features() {
                       >
                         {loading ? <CircularProgress size={24} color="inherit" /> : "Submit"}
                       </Button>
-                    ) : (
-                      <Box sx={{ textAlign: 'center', width: '100%' }}>
-                        <Typography variant="h5" component="h5" sx={{ mb: 2 }}>
-                          Please verify your email
-                        </Typography>
-                      </Box>
                     )}
                   </Box>
+
                 </form>
               </TabPanel>
             </TabContext>

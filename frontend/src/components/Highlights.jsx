@@ -5,49 +5,49 @@ import Container from '@mui/material/Container';
 import Grid from '@mui/material/Grid2';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import AutoFixHighRoundedIcon from '@mui/icons-material/AutoFixHighRounded';
-import ConstructionRoundedIcon from '@mui/icons-material/ConstructionRounded';
-import QueryStatsRoundedIcon from '@mui/icons-material/QueryStatsRounded';
-import SettingsSuggestRoundedIcon from '@mui/icons-material/SettingsSuggestRounded';
-import SupportAgentRoundedIcon from '@mui/icons-material/SupportAgentRounded';
-import ThumbUpAltRoundedIcon from '@mui/icons-material/ThumbUpAltRounded';
+import SummarizeIcon from '@mui/icons-material/Summarize';
+import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
+import GroupAddIcon from '@mui/icons-material/GroupAdd';
+import SpeedIcon from '@mui/icons-material/Speed';
+import SupportAgentIcon from '@mui/icons-material/SupportAgent';
+import FlareIcon from '@mui/icons-material/Flare';
 
 const items = [
   {
-    icon: <SettingsSuggestRoundedIcon />,
-    title: 'Adaptable performance',
+    icon: <SummarizeIcon />, // Replace with an appropriate icon for summarization
+    title: 'Instant Summaries',
     description:
-      'Our product effortlessly adjusts to your needs, boosting efficiency and simplifying your tasks.',
+      'Submit YouTube links or upload files to receive clear, concise summaries instantly. Gain quick insights from any audio content with ease.',
   },
   {
-    icon: <ConstructionRoundedIcon />,
-    title: 'Built to last',
+    icon: <QuestionAnswerIcon />, // Replace with an appropriate icon for Q&A
+    title: 'Interactive Q&A',
     description:
-      'Experience unmatched durability that goes above and beyond with lasting investment.',
+      'Ask questions about your audio content and get precise, detailed answers to enhance your understanding and engagement.',
   },
   {
-    icon: <ThumbUpAltRoundedIcon />,
-    title: 'Great user experience',
+    icon: <GroupAddIcon />, // Replace with an appropriate icon for user experience
+    title: 'User-Friendly Design',
     description:
-      'Integrate our product into your routine with an intuitive and easy-to-use interface.',
+      'Enjoy a seamless experience with an intuitive interface designed for effortless navigation and immediate results.',
   },
   {
-    icon: <AutoFixHighRoundedIcon />,
-    title: 'Innovative functionality',
+    icon: <SpeedIcon />, // Replace with an appropriate icon for efficiency
+    title: 'Efficient Processing',
     description:
-      'Stay ahead with features that set new standards, addressing your evolving needs better than the rest.',
+      'Experience fast and accurate processing with our advanced algorithms, ensuring timely and reliable summaries every time.',
   },
   {
-    icon: <SupportAgentRoundedIcon />,
-    title: 'Reliable support',
+    icon: <SupportAgentIcon />, // Replace with an appropriate icon for support
+    title: 'Dedicated Support',
     description:
-      'Count on our responsive customer support, offering assistance that goes beyond the purchase.',
+      'Access responsive and helpful customer support to assist you with any questions or issues, ensuring smooth use of our app.',
   },
   {
-    icon: <QueryStatsRoundedIcon />,
-    title: 'Precision in every detail',
+    icon: <FlareIcon />, // Replace with an appropriate icon for advanced features
+    title: 'Advanced Capabilities',
     description:
-      'Enjoy a meticulously crafted product where small touches make a significant impact on your overall experience.',
+      'Utilize cutting-edge technology for detailed audio insights and customizable summary options to meet your unique needs.',
   },
 ];
 

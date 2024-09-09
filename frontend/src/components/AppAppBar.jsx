@@ -91,9 +91,7 @@ export default function AppAppBar({ mode, toggleColorMode }) {
               <Button variant="text" color="info" size="small" onClick={() => handleScrollToSection('faq')}>
                 FAQ
               </Button>
-              <Button variant="text" color="info" size="small" onClick={() => handleScrollToSection('blog')}>
-                Blog
-              </Button>
+
             </Box>
           </Box>
           <Box
@@ -144,7 +142,6 @@ export default function AppAppBar({ mode, toggleColorMode }) {
                 <MenuItem onClick={() => handleScrollToSection('highlights')}>Highlights</MenuItem>
                 <MenuItem onClick={() => handleScrollToSection('pricing')}>Pricing</MenuItem>
                 <MenuItem onClick={() => handleScrollToSection('faq')}>FAQ</MenuItem>
-                <MenuItem onClick={() => handleScrollToSection('blog')}>Blog</MenuItem>
                 <MenuItem>
                   <ToggleColorMode
                     data-screenshot="toggle-mode"

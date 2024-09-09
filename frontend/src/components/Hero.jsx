@@ -49,7 +49,7 @@ export default function Hero() {
               mb: 0, // Ensure no bottom margin
             }}
           >
-            Our&nbsp;latest&nbsp;
+            The&nbsp;best&nbsp;
             <Typography
               component="span"
               variant="h1"
@@ -61,7 +61,7 @@ export default function Hero() {
                 }),
               })}
             >
-              products
+              summariser
             </Typography>
           </Typography>
           <Typography
@@ -72,9 +72,7 @@ export default function Hero() {
               mb: 0, // Ensure no bottom margin
             }}
           >
-            Explore our cutting-edge dashboard, delivering high-quality solutions
-            tailored to your needs. Elevate your experience with top-tier features
-            and services.
+            Quickly transform long content into concise, clear summaries with our AI summarizer. Ideal for boosting productivity and comprehension. Try it today!
           </Typography>
         </Stack>
       </Container>

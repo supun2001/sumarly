@@ -41,6 +41,33 @@ export default function FAQ() {
         Frequently asked questions
       </Typography>
       <Box sx={{ width: '100%' }}>
+      <Accordion
+          expanded={expanded === 'panel1'}
+          onChange={handleChange('panel1')}
+        >
+          <AccordionSummary
+            expandIcon={<ExpandMoreIcon />}
+            aria-controls="panel1d-content"
+            id="panel1d-header"
+          >
+            <Typography component="h3" variant="subtitle2">
+              How to use?
+            </Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Typography
+              variant="body2"
+              gutterBottom
+              sx={{ maxWidth: { sm: '100%', md: '70%' } }}
+            >
+             Please start by logging in. After that, you can upload your local file or 
+             enter a YouTube link in the features section and click the "Submit" button. 
+             If you have any questions about your audio, kindly navigate to the question section, 
+             type your query, and press "Enter" to receive your response.
+        
+            </Typography>
+          </AccordionDetails>
+        </Accordion>
         <Accordion
           expanded={expanded === 'panel1'}
           onChange={handleChange('panel1')}
@@ -61,7 +88,7 @@ export default function FAQ() {
               sx={{ maxWidth: { sm: '100%', md: '70%' } }}
             >
               You can reach our customer support team by emailing
-              <Link> support@email.com </Link>
+              <Link> hanzstudio.contact@gmail.com </Link>
               or calling our toll-free number. We&apos;re here to assist you
               promptly.
             </Typography>

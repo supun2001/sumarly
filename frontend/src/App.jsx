@@ -6,6 +6,8 @@ import Register from "./pages/Register"
 import Notfount from "./pages/Notfount"
 import ProtectedRoute from './components/ProtectedRoute'
 import ConfirmEmail from "./components/ConfirmMail"
+import Buy from "./components/Buy"
+import Contact from "./components/Contacts"
 
 function Logout() {
   localStorage.clear()
@@ -34,6 +36,12 @@ function App() {
           <Route path="/logout" element={<Logout />} />
           <Route path="/register" element={<RegisterAndLogout />} />
           <Route path="/confirm_email" element={<ConfirmEmail />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/buy" element={
+            <ProtectedRoute>
+              <Buy />
+              </ProtectedRoute>
+            }></Route>
           <Route path="*" element={
             <ProtectedRoute>
               <Notfount />
