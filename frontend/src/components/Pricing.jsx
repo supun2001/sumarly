@@ -9,7 +9,7 @@ import Container from '@mui/material/Container';
 import Divider from '@mui/material/Divider';
 import Grid from '@mui/material/Grid2';
 import Typography from '@mui/material/Typography';
-
+import { useNavigate } from 'react-router-dom';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 
@@ -59,6 +59,31 @@ const tiers = [
 ];
 
 export default function Pricing() {
+  const navigate = useNavigate();
+  const [email, setEmail] = React.useState(false)
+
+  const getEmail = () => {
+    const storedEmail = localStorage.getItem('Email');
+    if (storedEmail) {
+      setEmail(storedEmail);
+    } else {
+      setEmail(null);
+    }
+  };
+
+  // Call getEmail when the component mounts
+  React.useEffect(() => {
+    getEmail();
+  }, []);
+
+  const handleButtonClick = (action) => {
+    if (email) {
+      navigate(action);
+    } else {
+      navigate('/login');
+    }
+  };
+
   return (
     <Container
       id="pricing"
@@ -196,13 +221,24 @@ export default function Pricing() {
                 ))}
               </CardContent>
               <CardActions>
+                {email ? (
                 <Button
+                fullWidth
+                variant={tier.buttonVariant}
+                color={tier.buttonColor}
+              >
+                Buys
+              </Button>
+                ):(
+                  <Button
                   fullWidth
                   variant={tier.buttonVariant}
                   color={tier.buttonColor}
                 >
                   {tier.buttonText}
                 </Button>
+                )}
+
               </CardActions>
             </Card>
           </Grid>
