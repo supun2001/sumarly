@@ -3,7 +3,7 @@ import { Box, TextField, IconButton, Typography, CircularProgress } from '@mui/m
 import SendIcon from '@mui/icons-material/Send';
 import api from "../api"; // Adjust the import as needed
 
-export default function Questions({ transcript }) {
+export default function Questions({ transcript, userConfirmation }) {
     const [message, setMessage] = useState('');
     const [messages, setMessages] = useState([]);
     const messagesEndRef = useRef(null);
@@ -48,7 +48,7 @@ export default function Questions({ transcript }) {
             } else {
                 setMessages(prevMessages => [
                     ...prevMessages.slice(0, -1), // Remove the last "typing" indicator
-                    { text: 'Something went wrong please refresh the page', sender: 'bot' },
+                    { text: 'Something went wrong, please refresh the page', sender: 'bot' },
                 ]);
             }
         }
@@ -101,60 +101,69 @@ export default function Questions({ transcript }) {
                     add-ons.
                 </Typography>
             </Box>
-
-            {/* Messages Display */}
-            <Box 
-                flexGrow={1} 
-                overflow="auto" 
-                mb={2}
-                display="flex"
-                flexDirection="column"
-            >
-                {messages.map((msg, index) => (
+            {userConfirmation ? (
+                <>
+                    {/* Messages Display */}
                     <Box 
-                        key={index} 
-                        display="flex" 
-                        justifyContent={msg.sender === 'user' ? 'flex-end' : 'flex-start'}
-                        mb={1}
+                        flexGrow={1} 
+                        overflow="auto" 
+                        mb={2}
+                        display="flex"
+                        flexDirection="column"
                     >
-                        <Typography 
-                            variant="body1" 
-                            bgcolor={msg.sender === 'user' ? 'primary.main' : 'grey.300'}
-                            color={msg.sender === 'user' ? 'white' : 'black'}
-                            p={1}
-                            borderRadius="10px"
-                            maxWidth="80%"
-                            sx={{ wordWrap: 'break-word' }} // Correct property name
-                            dangerouslySetInnerHTML={{ __html: msg.text }} // Render HTML content
-                        />
-                        {/* Show CircularProgress if it's a typing indicator */}
-                        {msg.isTyping && (
-                            <CircularProgress size={20} sx={{ ml: 1, alignSelf: 'center' }} />
-                        )}
+                        {messages.map((msg, index) => (
+                            <Box 
+                                key={index} 
+                                display="flex" 
+                                justifyContent={msg.sender === 'user' ? 'flex-end' : 'flex-start'}
+                                mb={1}
+                            >
+                                <Typography 
+                                    variant="body1" 
+                                    bgcolor={msg.sender === 'user' ? 'primary.main' : 'grey.300'}
+                                    color={msg.sender === 'user' ? 'white' : 'black'}
+                                    p={1}
+                                    borderRadius="10px"
+                                    maxWidth="80%"
+                                    sx={{ wordWrap: 'break-word' }} // Correct property name
+                                    dangerouslySetInnerHTML={{ __html: msg.text }} // Render HTML content
+                                />
+                                {/* Show CircularProgress if it's a typing indicator */}
+                                {msg.isTyping && (
+                                    <CircularProgress size={20} sx={{ ml: 1, alignSelf: 'center' }} />
+                                )}
+                            </Box>
+                        ))}
+
+                        <div ref={messagesEndRef} />
                     </Box>
-                ))}
 
-                <div ref={messagesEndRef} />
-            </Box>
-
-            {/* Input Field */}
-            <Box display="flex" alignItems="center">
-                <TextField
-                    variant="outlined"
-                    fullWidth
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Type your message..."
-                    onKeyPress={(e) => e.key === 'Enter' ? handleSendMessage() : null}
-                />
-                <IconButton 
-                    color="primary" 
-                    onClick={handleSendMessage} 
-                    sx={{ ml: 1 }}
-                >
-                    <SendIcon />
-                </IconButton>
-            </Box>
+                    {/* Input Field */}
+                    <Box display="flex" alignItems="center">
+                        <TextField
+                            variant="outlined"
+                            fullWidth
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
+                            placeholder="Type your message..."
+                            onKeyPress={(e) => e.key === 'Enter' ? handleSendMessage() : null}
+                        />
+                        <IconButton 
+                            color="primary" 
+                            onClick={handleSendMessage} 
+                            sx={{ ml: 1 }}
+                        >
+                            <SendIcon />
+                        </IconButton>
+                    </Box>
+                </>
+            ) : (
+                <Box sx={{ textAlign: 'center', width: '100%' }}>
+                    <Typography variant="h5" component="h5" sx={{ mb: 2 }}>
+                        Please verify your email
+                    </Typography>
+                </Box>
+            )}
         </Box>
     );
 }

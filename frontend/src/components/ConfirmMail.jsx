@@ -35,12 +35,18 @@ const ConfirmEmail = () => {
                 })
                 .catch((err) => {
                     // Handle error response
-                    const errorMessage = err.response?.data?.message || 'An error occurred';
+                    let errorMessage = 'An error occurred';
+                    if (err.response?.status === 400) {
+                        errorMessage = 'Invalid or expired token. Please request a new confirmation email.';
+                    } else if (err.response?.status === 404) {
+                        errorMessage = 'Token not found. Please check the link and try again.';
+                    }
                     setConfirmationStatus(errorMessage);
                     setOpenSnackbar(true);
                 });
         }
     };
+    
 
     const handleCloseSnackbar = () => {
         setOpenSnackbar(false);

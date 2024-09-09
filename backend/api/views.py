@@ -56,11 +56,10 @@ class CreateUserView(generics.CreateAPIView):
             'user_type': 'Free',
             'transcript': 'None',
         }
-        UserData.objects.create(author=user, **default_data)
+        user_data = UserData.objects.create(author=user, **default_data)
 
         # Create and send confirmation token
-        token = UserData.objects.create(author=user)
-        self.send_confirmation_email(user, token.token)
+        self.send_confirmation_email(user, user_data.token)
 
     def send_confirmation_email(self, user, token):
         full_url = f"{settings.SITE_URL}confirm_email?token={token}"
@@ -71,24 +70,35 @@ class CreateUserView(generics.CreateAPIView):
 
         send_mail(subject, message, from_email, [user.username])
 
+
 class ConfirmEmailView(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request, token):
+        # Retrieve the UserData object with the given token
         confirmation_token = get_object_or_404(UserData, token=token)
 
+        # Check if the token is already confirmed
         if confirmation_token.confirmed:
             return Response({"message": "Email already confirmed"}, status=status.HTTP_400_BAD_REQUEST)
 
-        if timezone.now() - confirmation_token.created_at > timezone.timedelta(hours=24):
+        # Check if the token has expired
+        if timezone.now() - confirmation_token.token_created_at > timezone.timedelta(hours=24):
             return Response({"message": "Token expired"}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Activate the user account
         user = confirmation_token.author
         user.is_active = True
         user.save()
 
+        # Mark the token as confirmed
         confirmation_token.confirmed = True
         confirmation_token.save()
+        print(f"Confirmation: {confirmation_token.confirmed}")
+
 
         return Response({"message": "Email confirmed successfully"}, status=status.HTTP_200_OK)
+
 
 class UserDataListCreate(generics.ListCreateAPIView):
     serializer_class = UserDataSerializer
@@ -218,7 +228,7 @@ class DownloadAndTranscribeAPIView(APIView):
         return summary, new_time
 
 class AskQuestionView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         # Get transcript and question from the request data

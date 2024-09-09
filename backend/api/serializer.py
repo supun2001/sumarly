@@ -16,5 +16,5 @@ class UserSerializer(serializers.ModelSerializer):
 class UserDataSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserData
-        fields = ["id", "user_type", "transcript", "created_at","time" ,"author"]
+        fields = ["id", "user_type", "transcript", "created_at","time" ,"author","confirmed","token"]
         extra_kwargs = {"author": {"read_only": True}}

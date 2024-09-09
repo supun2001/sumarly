@@ -17,7 +17,7 @@ import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
 import CircularProgress from '@mui/material/CircularProgress';
 import Questions from "./Questions";
-import { Dialog, DialogActions, DialogContent, DialogTitle,Snackbar, Alert } from '@mui/material';
+import { Dialog, DialogActions, DialogContent, DialogTitle, Snackbar, Alert } from '@mui/material';
 import DialogContentText from '@mui/material/DialogContentText';
 import { useNavigate } from 'react-router-dom';
 
@@ -94,7 +94,7 @@ export default function Features() {
   const [alertMessage, setAlertMessage] = useState("");
   const [alertSeverity, setAlertSeverity] = useState("info");
   const [loginConfirmed, setLoginConfirmed] = useState(false);
-  const [userConfrimation, setUserConfrimation] = useState(false);
+  const [userConfirmation, setUserConfirmation] = useState(false);
 
   const navigate = useNavigate();
 
@@ -126,16 +126,17 @@ export default function Features() {
       .get("/api/notes/")
       .then((res) => {
         const notes = res.data;
-  
+        console.log(notes)
         if (Array.isArray(notes)) {
           setNotes(notes);
-  
           // Check if notes array has at least one item
           if (notes.length > 0) {
             const firstNote = notes[0]; // Access the first item in the array
             const firstTranscript = firstNote.transcript;
             setTranscript(firstTranscript);
+            setUserConfirmation(firstNote.confirmed);
           } else {
+            setUserConfirmation(false);
             setTranscript(null);
           }
         } else {
@@ -145,43 +146,15 @@ export default function Features() {
         }
       })
       .catch((err) => {
-        console.error("Error fetching notes:", err);
-        setAlertMessage("Error fetching notes: " + (err.response?.data?.message || err.message));
+        console.error("Error fetching data:", err);
+        setAlertMessage("Error fetching data: " + (err.response?.data?.message || err.message));
         setAlertSeverity("error");
         setOpenAlert(true);
       });
   };
   console.log(transcript)
-  // const getUserConfrimation = () => {
-  //   api
-  //     .get("/api/notes/")
-  //     .then((res) => {
-  //       const notes = res.data;
-  
-  //       if (Array.isArray(notes)) {
-  //         setNotes(notes);
-  
-  //         // Check if notes array has at least one item
-  //         if (notes.length > 0) {
-  //           const firstNote = notes[0]; // Access the first item in the array
-  //           const firstTranscript = firstNote.confirmed;
-  //           setUserConfrimation(firstTranscript);
-  //         } else {
-  //           setUserConfrimation(false);
-  //         }
-  //       } else {
-  //         setAlertMessage("Unexpected data format received.");
-  //         setAlertSeverity("error");
-  //         setOpenAlert(true);
-  //       }
-  //     })
-  //     .catch((err) => {
-  //       console.error("Error fetching notes:", err);
-  //       setAlertMessage("Error fetching notes: " + (err.response?.data?.message || err.message));
-  //       setAlertSeverity("error");
-  //       setOpenAlert(true);
-  //     });
-  // };
+  console.log('User confirmtaion : ' + userConfirmation)
+
 
   const handleTranscribeSubmit = async (e) => {
     e.preventDefault();
@@ -229,7 +202,7 @@ export default function Features() {
       setLoginConfirmed(true);
     }
   };
-  
+
 
   return (
     <Container id="features" sx={{ py: { xs: 8, sm: 16 }, pb: { xs: 0, sm: 0 }, mb: 0 }}>
@@ -304,16 +277,25 @@ export default function Features() {
                   />
 
                   <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-                    <Button
-                      type="submit"
-                      variant="contained"
-                      color="primary"
-                      fullWidth
-                      disabled={loading}
-                    >
-                      {loading ? <CircularProgress size={24} color="inherit" /> : "Submit"}
-                    </Button>
+                    {userConfirmation ? (
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        color="primary"
+                        fullWidth
+                        disabled={loading}
+                      >
+                        {loading ? <CircularProgress size={24} color="inherit" /> : "Submit"}
+                      </Button>
+                    ) : (
+                      <Box sx={{ textAlign: 'center', width: '100%' }}>
+                        <Typography variant="h5" component="h5" sx={{ mb: 2 }}>
+                          Please verify your email
+                        </Typography>
+                      </Box>
+                    )}
                   </Box>
+
                 </form>
               </TabPanel>
 
@@ -340,15 +322,23 @@ export default function Features() {
                   />
 
                   <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-                    <Button
-                      type="submit"
-                      variant="contained"
-                      color="primary"
-                      fullWidth
-                      disabled={loading}
-                    >
-                      {loading ? <CircularProgress size={24} color="inherit" /> : "Submit"}
-                    </Button>
+                    {userConfirmation ? (
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        color="primary"
+                        fullWidth
+                        disabled={loading}
+                      >
+                        {loading ? <CircularProgress size={24} color="inherit" /> : "Submit"}
+                      </Button>
+                    ) : (
+                      <Box sx={{ textAlign: 'center', width: '100%' }}>
+                        <Typography variant="h5" component="h5" sx={{ mb: 2 }}>
+                          Please verify your email
+                        </Typography>
+                      </Box>
+                    )}
                   </Box>
                 </form>
               </TabPanel>
@@ -404,8 +394,9 @@ export default function Features() {
       {/* Questions */}
 
       <Grid item xs={12} sm={6}>
-        <Questions transcript={transcript} />
+        <Questions transcript={transcript} userConfirmation={userConfirmation} />
       </Grid>
     </Container>
   );
 }
+
