@@ -18,7 +18,7 @@ const tiers = [
     title: 'Free',
     price: '0',
     description: [
-      '120 Minutes per Month',
+      '60 Minutes per Month',
       'Perfect for Light Users',
       'Access Mobile App',
       '24/7 support',
@@ -30,7 +30,7 @@ const tiers = [
   {
     title: 'Professional',
     subheader: 'Recommended',
-    price: '17',
+    price: '15',
     description: [
       '1000 Minutes per Month',
       'Best for Regular Users',
