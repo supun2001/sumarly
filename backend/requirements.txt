@@ -6,3 +6,12 @@ mutagen==1.47.0
 python-dotenv==1.0.1
 rest_framework_simplejwt==0.0.2
 yt_dlp==2024.8.6
+asgiref
+Django
+django-cors-headers
+djangorestframework
+djangorestframework-simplejwt
+PyJWT
+pytz
+sqlparse
+psycopg2-binary
