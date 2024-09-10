@@ -8,5 +8,7 @@ urlpatterns = [
     path('ask-question/', views.AskQuestionView.as_view(), name='ask-question'),
     path('register/', views.CreateUserView.as_view(), name='register'),
     path('confirm-email/<uuid:token>/', views.ConfirmEmailView.as_view(), name='confirm_email'),
+    path('request_password_reset/', views.RequestPasswordResetView.as_view(), name='request_password_reset'),
+    path('reset_password/', views.ResetPasswordView.as_view(), name='reset_password'),
 ]
 

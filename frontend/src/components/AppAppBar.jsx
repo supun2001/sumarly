@@ -16,6 +16,8 @@ import ToggleColorMode from './ToggleColorMode';
 import Typography from '@mui/material/Typography';
 import LogoutMenu from "./LogoutMenu";
 import { useNavigate } from 'react-router-dom';
+import sumarlylogoDark from "../assets/sumarly logo dark.png"
+import sumarlylogoLigh from "../assets/sumarly logo light.png"
 
 const StyledToolbar = styled(Toolbar)(({ theme }) => ({
   display: 'flex',
@@ -65,6 +67,7 @@ export default function AppAppBar({ mode, toggleColorMode }) {
       element.scrollIntoView({ behavior: 'smooth' });
     }
   };
+  const logoSrc = mode === 'dark' ? sumarlylogoDark : sumarlylogoLigh;
 
   return (
     <AppBar
@@ -74,7 +77,9 @@ export default function AppAppBar({ mode, toggleColorMode }) {
       <Container maxWidth="lg">
         <StyledToolbar variant="dense" disableGutters>
           <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', px: 0 }}>
-            <Sitemark />
+            <img src={logoSrc} alt="Sumarly Logo" style={{ height: 38, width: 100, mr: 2 }} />
+
+            {/* <Sitemark /> */}
             <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
               <Button variant="text" color="info" size="small" onClick={() => handleScrollToSection('features')}>
                 Features

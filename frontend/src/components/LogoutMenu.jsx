@@ -19,6 +19,7 @@ export default function LogoutMenu({ email }) {
     const [notes, setNotes] = useState({});
     const [logoutConfirmed, setLogoutConfirmed] = useState(false);
     const navigate = useNavigate();
+    const [storedEmail, setStoredEmail] = useState(false);
 
     const handleClickOpen = () => {
         setOpen(true);
@@ -39,6 +40,7 @@ export default function LogoutMenu({ email }) {
         if (logoutConfirmed) {
             navigate('/login');
         }
+        
     }, [logoutConfirmed, navigate]);
 
     const getNotes = () => {
@@ -54,6 +56,7 @@ export default function LogoutMenu({ email }) {
             })
             .catch((err) => alert(err));
     };
+    console.log("Notes : " +notes)
 
     return (
         <>

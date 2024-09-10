@@ -2,12 +2,14 @@ import * as React from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import MuiCard from '@mui/material/Card';
-import Checkbox from '@mui/material/Checkbox';
 import FormControl from '@mui/material/FormControl';
-import FormControlLabel from '@mui/material/FormControlLabel';
 import Link from '@mui/material/Link';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
 import { useState } from "react";
 import { styled } from '@mui/material/styles';
 
@@ -45,6 +47,7 @@ export default function SignInCard({ route, method }) {
   const [passwordError, setPasswordError] = React.useState(false);
   const [passwordErrorMessage, setPasswordErrorMessage] = React.useState('');
   const [open, setOpen] = React.useState(false);
+  const [dialogOpen, setDialogOpen] = React.useState(false);
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -70,16 +73,30 @@ export default function SignInCard({ route, method }) {
       if (method === "login") {
         localStorage.setItem(ACCESS_TOKEN, res.data.access);
         localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
-        
+
         console.log(username);  // Log the email to the console
         localStorage.setItem(EMAIL, username);
 
         navigate("/");
       } else {
-        navigate("/login");
+        setDialogOpen(true); // Open the dialog on successful registration
       }
     } catch (error) {
-      alert(error);
+      if (error.response) {
+        if (error.response.status === 401) {
+          setEmailError(true);
+          setEmailErrorMessage("Email or password incorrect");
+        } else if (error.response.status === 400) {
+          setEmailError(true);
+          setEmailErrorMessage("Email already registered");
+        } else {
+          setEmailError(true);
+          setEmailErrorMessage("An unexpected error occurred");
+        }
+      } else {
+        setEmailError(true);
+        setEmailErrorMessage("Network error, please try again later");
+      }
     } finally {
       setLoading(false);
     }
@@ -173,10 +190,7 @@ export default function SignInCard({ route, method }) {
             sx={{ ariaLabel: 'password' }}
           />
         </FormControl>
-        <FormControlLabel
-          control={<Checkbox value="remember" color="primary" />}
-          label="Remember me"
-        />
+
         <ForgotPassword open={open} handleClose={handleClose} />
         <Button type="submit" fullWidth variant="contained" disabled={loading}>
           {loading ? 'Loading...' : name}
@@ -194,6 +208,22 @@ export default function SignInCard({ route, method }) {
           </span>
         </Typography>
       </Box>
+      
+      {/* Dialog Component */}
+      <Dialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+      >
+        <DialogTitle>Registration Successful</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Please check your email and verify your account.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDialogOpen(false)}>OK</Button>
+        </DialogActions>
+      </Dialog>
     </Card>
   );
 }

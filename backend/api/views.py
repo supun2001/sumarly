@@ -17,6 +17,8 @@ import assemblyai as aai
 from mutagen.mp3 import MP3
 import boto3
 import logging
+from django.contrib.auth.hashers import make_password
+import uuid
 
 # Set up AssemblyAI API key
 aai.settings.api_key = settings.API_KEY
@@ -55,6 +57,7 @@ class CreateUserView(generics.CreateAPIView):
         default_data = {
             'user_type': 'Free',
             'transcript': 'None',
+            'time' : 7200,
         }
         user_data = UserData.objects.create(author=user, **default_data)
 
@@ -69,7 +72,6 @@ class CreateUserView(generics.CreateAPIView):
         from_email = settings.DEFAULT_FROM_EMAIL
 
         send_mail(subject, message, from_email, [user.username])
-
 
 class ConfirmEmailView(APIView):
     permission_classes = [AllowAny]
@@ -98,7 +100,75 @@ class ConfirmEmailView(APIView):
 
 
         return Response({"message": "Email confirmed successfully"}, status=status.HTTP_200_OK)
+    
+class RequestPasswordResetView(APIView):
+    permission_classes = [AllowAny]
 
+    def post(self, request):
+        email = request.data.get('email')
+        user = get_object_or_404(User, username=email)
+
+        # Generate a random token
+        token = str(uuid.uuid4())
+
+
+        # Update the UserData with the new token and reset the time
+        user_data = get_object_or_404(UserData, author=user)
+        user_data.token = token
+        user_data.token_created_at = timezone.now()
+        user_data.save()
+
+        # Send the password reset email
+        reset_url = f"{settings.SITE_URL}reset_password?token={token}"
+        subject = "Reset Your Password"
+        message = f"Hi {user.username},\n\nPlease reset your password by clicking the following link:\n{reset_url}"
+        from_email = settings.DEFAULT_FROM_EMAIL
+
+        send_mail(subject, message, from_email, [user.username])
+
+        return Response({"message": "Password reset email sent"}, status=status.HTTP_200_OK)
+    
+
+class ResetPasswordView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        token = request.data.get('token')
+        new_password = request.data.get('password')
+
+        # Debugging: Print token to check its value
+        print(f"Received token: {token}")
+        print(f"Password token: {new_password}")
+        if not token:
+            return Response({"message": "Token is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate UUID format
+        try:
+            uuid_obj = uuid.UUID(token)
+        except ValueError:
+            return Response({"message": "Invalid token format"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Retrieve the UserData object with the given token
+        try:
+            user_data = UserData.objects.get(token=uuid_obj)
+        except UserData.DoesNotExist:
+            return Response({"message": "Token not found"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if the token has expired
+        if timezone.now() - user_data.token_created_at > timezone.timedelta(hours=24):
+            return Response({"message": "Token expired"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Update the user's password
+        user = user_data.author
+        user.password = make_password(new_password)
+        user.save()
+
+        # Clear the token to prevent reuse
+        updated_token = str(uuid.uuid4())
+        user_data.token = updated_token
+        user_data.save()
+
+        return Response({"message": "Password reset successfully"}, status=status.HTTP_200_OK)
 
 class UserDataListCreate(generics.ListCreateAPIView):
     serializer_class = UserDataSerializer
@@ -157,7 +227,7 @@ class DownloadAndTranscribeAPIView(APIView):
                 return Response({"error": "UserData not found for the given user_id"}, status=status.HTTP_404_NOT_FOUND)
 
             current_time = user_data.time
-            if current_time >= 0:
+            if current_time <= 0:
                 return Response({"error": "Your time limit is over"}, status=status.HTTP_403_FORBIDDEN)
 
             summary, new_time = self.transcribe_and_summarize(s3_file_key, user_id, context, current_time)

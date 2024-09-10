@@ -109,11 +109,7 @@ export default function Features() {
     const storedEmail = localStorage.getItem('email');
     if (storedEmail) {
       setEmail(storedEmail);
-    } else {
-      setAlertMessage("Please login!");
-      setAlertSeverity("error");
-      setOpenAlert(true);
-    }
+    } 
   }, []);
 
   console.log(email)
