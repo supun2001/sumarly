@@ -174,4 +174,4 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = mail
 EMAIL_HOST_PASSWORD = password
 DEFAULT_FROM_EMAIL = mail
-SITE_URL = 'http://localhost:5173/'  # Update with your actual site URL
+SITE_URL = 'https://49afe63c-c025-4bb6-81f4-85adcc933e76.e1-eu-north-azure.choreoapps.dev/'  # Update with your actual site URL
