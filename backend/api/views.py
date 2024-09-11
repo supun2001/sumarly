@@ -19,7 +19,6 @@ import boto3
 import logging
 from django.contrib.auth.hashers import make_password
 import uuid
-from pytube import YouTube
 
 # Set up AssemblyAI API key
 aai.settings.api_key = settings.API_KEY
@@ -195,7 +194,7 @@ class UserDataDelete(generics.DestroyAPIView):
 
 class DownloadAndTranscribeAPIView(APIView):
     permission_classes = [AllowAny]
-
+    
     def post(self, request, *args, **kwargs):
         user = request.user
         user_id = user.id
@@ -241,17 +240,26 @@ class DownloadAndTranscribeAPIView(APIView):
             return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def download_from_youtube(self, youtube_url):
-        # Use pytube to download the YouTube video audio
-        yt = YouTube(youtube_url)
-        audio_stream = yt.streams.filter(only_audio=True).first()
-        local_file_path = f'/tmp/{yt.title}.mp3'
-        audio_stream.download(output_path='/tmp', filename=f'{yt.title}.mp3')
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'outtmpl': '/tmp/%(title)s.%(ext)s',  # Use /tmp for temporary storage
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }],
+        }
 
-        # Ensure the file exists
-        if not os.path.exists(local_file_path):
-            raise FileNotFoundError("Audio file was not downloaded properly.")
+        with YoutubeDL(ydl_opts) as ydl:
+            ydl.download([youtube_url])
 
-        s3_file_key = f'downloads/{yt.title}.mp3'
+        downloaded_files = [file for file in os.listdir('/tmp') if file.endswith('.mp3')]
+        if not downloaded_files:
+            raise FileNotFoundError("No MP3 files found after download.")
+
+        local_file_path = os.path.join('/tmp', downloaded_files[0])
+        s3_file_key = f'downloads/{downloaded_files[0]}'
+
         self.upload_to_s3(local_file_path, s3_file_key)
 
         os.remove(local_file_path)  # Clean up the local file after uploading
