@@ -30,7 +30,8 @@ SECRET_KEY = 'django-insecure-n2#cph$)s*uvw$9_0mm_!bpo_7z4a%(641!tf#qju0n=zf6#-p
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = ['49afe63c-c025-4bb6-81f4-85adcc933e76.e1-eu-north-azure.choreoapps.dev', 'sumarly.com']
+
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
