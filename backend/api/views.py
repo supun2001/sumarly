@@ -192,6 +192,8 @@ class UserDataDelete(generics.DestroyAPIView):
         user = self.request.user
         return UserData.objects.filter(author=user)
 
+from yt_dlp import YoutubeDL
+
 class DownloadAndTranscribeAPIView(APIView):
     permission_classes = [AllowAny]
     
@@ -216,11 +218,10 @@ class DownloadAndTranscribeAPIView(APIView):
         elif 'file' in request.FILES:
             uploaded_file = request.FILES['file']
             s3_file_key = self.save_uploaded_file_to_s3(uploaded_file)
-            audio_path = uploaded_file.name  # This can be used for processing if needed
+            audio_path = uploaded_file.name
         else:
             return Response({"error": "No URL or file provided"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Process transcription and summarization
         try:
             user_data = UserData.objects.filter(author_id=user_id).first()
             if not user_data:
@@ -242,12 +243,13 @@ class DownloadAndTranscribeAPIView(APIView):
     def download_from_youtube(self, youtube_url):
         ydl_opts = {
             'format': 'bestaudio/best',
-            'outtmpl': '/tmp/%(title)s.%(ext)s',  # Use /tmp for temporary storage
+            'outtmpl': '/tmp/%(title)s.%(ext)s',
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'mp3',
                 'preferredquality': '192',
             }],
+            'cookiefile': '/path/to/cookies.txt',  # Add your cookies.txt file path here
         }
 
         with YoutubeDL(ydl_opts) as ydl:
@@ -261,8 +263,7 @@ class DownloadAndTranscribeAPIView(APIView):
         s3_file_key = f'downloads/{downloaded_files[0]}'
 
         self.upload_to_s3(local_file_path, s3_file_key)
-
-        os.remove(local_file_path)  # Clean up the local file after uploading
+        os.remove(local_file_path)
 
         return local_file_path, s3_file_key
 
@@ -275,7 +276,6 @@ class DownloadAndTranscribeAPIView(APIView):
         s3_client.upload_file(file_path, settings.AWS_STORAGE_BUCKET_NAME, s3_file_key)
 
     def transcribe_and_summarize(self, s3_file_key, user_id, context, current_time):
-        # Download the file from S3 to a temporary local path for processing
         local_file_path = f'/tmp/{os.path.basename(s3_file_key)}'
         s3_client.download_file(settings.AWS_STORAGE_BUCKET_NAME, s3_file_key, local_file_path)
 
@@ -285,21 +285,20 @@ class DownloadAndTranscribeAPIView(APIView):
         params = TRANSCRIPTION_PARAMS.copy()
         if context:
             params['context'] = context
-        
+
         summary = transcript.lemur.summarize(**params).response.strip().split('\n')
-
         audio_length = get_audio_length(local_file_path)
-
         new_time = max(current_time - audio_length, 0)
+
         user_data = UserData.objects.filter(author_id=user_id).first()
         if user_data:
             user_data.time = new_time
             user_data.transcript = transcript
             user_data.save()
 
-        os.remove(local_file_path)  # Clean up the local file after processing
-
+        os.remove(local_file_path)
         return summary, new_time
+
 
 class AskQuestionView(APIView):
     permission_classes = [IsAuthenticated]
