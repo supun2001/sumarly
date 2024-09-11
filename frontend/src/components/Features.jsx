@@ -99,7 +99,6 @@ export default function Features() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    getNotes()
     if (loginConfirmed) {
       navigate('/login'); // Navigate to login after logout
     }
