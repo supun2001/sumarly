@@ -167,6 +167,7 @@ DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 mail = os.environ.get("EMAIL")
 password = os.environ.get("PASSWORD")
 rapidapi_key = os.environ.get("RAPIDAPI_KEY")
+rapidapi_host = os.environ.get("RAPIDAPI_HOST")
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
@@ -176,4 +177,6 @@ EMAIL_HOST_USER = mail
 EMAIL_HOST_PASSWORD = password
 DEFAULT_FROM_EMAIL = mail
 SITE_URL = 'https://49afe63c-c025-4bb6-81f4-85adcc933e76.e1-eu-north-azure.choreoapps.dev/'  # Update with your actual site URL
+
 RAPIDAPI_KEY = rapidapi_key
+RAPIDAPI_HOST = 'youtube-mp36.p.rapidapi.com'

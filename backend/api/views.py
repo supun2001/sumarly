@@ -7,10 +7,8 @@ from rest_framework import status, generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.exceptions import NotFound
 from .models import User, UserData
 from .serializer import UserSerializer, UserDataSerializer
-from yt_dlp import YoutubeDL
 import os
 import hashlib
 import assemblyai as aai
@@ -24,6 +22,7 @@ import json
 import requests
 import time
 import io
+import tempfile 
 
 # Set up AssemblyAI API key
 aai.settings.api_key = settings.API_KEY
@@ -246,9 +245,12 @@ class DownloadAndTranscribeAPIView(APIView):
         conn = http.client.HTTPSConnection("youtube-mp36.p.rapidapi.com")
         headers = {
             'x-rapidapi-key': settings.RAPIDAPI_KEY,
-            'x-rapidapi-host': "youtube-mp36.p.rapidapi.com"
+            'x-rapidapi-host': settings.RAPIDAPI_HOST
         }
-        
+
+        # Log headers to check if they are set correctly
+        logger.debug(f"Request headers: {headers}")
+
         video_id = youtube_url.split('=')[-1]
         logger.debug(f"Extracted video ID: {video_id}")
 
@@ -270,16 +272,7 @@ class DownloadAndTranscribeAPIView(APIView):
                 if not isinstance(file_url, str):
                     raise ValueError("The file URL received is not a valid string")
 
-                # Download file
-                response = requests.get(file_url)
-                if response.status_code != 200:
-                    raise Exception(f"Failed to download file: {response.status_code}")
-
-                # Upload file to S3
-                audio_s3_key = f'downloads/{result["title"]}.mp3'
-                s3_client = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID, aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
-                s3_client.upload_fileobj(io.BytesIO(response.content), settings.AWS_STORAGE_BUCKET_NAME, audio_s3_key)
-
+                audio_s3_key = self.download_and_upload_from_youtube(file_url, result["title"])
                 return audio_s3_key, duration
 
             elif result['status'] == 'in process':
@@ -293,11 +286,21 @@ class DownloadAndTranscribeAPIView(APIView):
 
         raise Exception("API processing time exceeded. Please try again later.")
 
+    def download_and_upload_from_youtube(self, file_url, title):
+        response = requests.get(file_url)
+        if response.status_code != 200:
+            raise Exception(f"Failed to download file: {response.status_code}")
+
+        s3_client = self.get_s3_client()
+        audio_s3_key = f'downloads/{title}.mp3'
+        s3_client.upload_fileobj(io.BytesIO(response.content), settings.AWS_STORAGE_BUCKET_NAME, audio_s3_key)
+        return audio_s3_key
+
     def upload_file_to_s3(self, uploaded_file):
         if not hasattr(uploaded_file, 'file') or uploaded_file.size == 0:
             raise ValueError("The uploaded file is not valid")
 
-        s3_client = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID, aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
+        s3_client = self.get_s3_client()
         audio_s3_key = f'uploads/{uploaded_file.name}'
         s3_client.upload_fileobj(uploaded_file, settings.AWS_STORAGE_BUCKET_NAME, audio_s3_key)
         return audio_s3_key
@@ -306,22 +309,21 @@ class DownloadAndTranscribeAPIView(APIView):
         if not isinstance(s3_key, str) or not s3_key:
             raise ValueError("Invalid S3 key provided")
 
-        s3_client = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID, aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
+        s3_client = self.get_s3_client()
         s3_object = s3_client.get_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=s3_key)
         audio_file = io.BytesIO(s3_object['Body'].read())
         audio = MP3(audio_file)
         return audio.info.length
 
-
     def transcribe_and_summarize(self, audio_s3_key, user_id, context, current_time, duration):
-        s3_client = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID, aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
-        with io.BytesIO() as file_obj:
-            s3_client.download_fileobj(settings.AWS_STORAGE_BUCKET_NAME, audio_s3_key, file_obj)
-            file_obj.seek(0)
-            audio_path = f'/tmp/{audio_s3_key}'
+        s3_client = self.get_s3_client()
 
-            with open(audio_path, 'wb') as f:
-                f.write(file_obj.read())
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as temp_file:
+            s3_client.download_fileobj(settings.AWS_STORAGE_BUCKET_NAME, audio_s3_key, temp_file)
+            temp_file.flush()  # Ensure data is written to the file
+            
+            # Use the name of the temporary file for processing
+            audio_path = temp_file.name
 
         transcriber = aai.Transcriber()
         transcript = transcriber.transcribe(audio_path)
@@ -345,6 +347,13 @@ class DownloadAndTranscribeAPIView(APIView):
         # Clean up
         os.remove(audio_path)
         return summary, new_time
+
+    def get_s3_client(self):
+        return boto3.client(
+            's3',
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
+        )
 
 
 class AskQuestionView(APIView):
