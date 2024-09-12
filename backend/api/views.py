@@ -240,7 +240,7 @@ class DownloadAndTranscribeAPIView(APIView):
     def download_from_youtube(self, youtube_url):
         conn = http.client.HTTPSConnection("youtube-mp36.p.rapidapi.com")
         headers = {
-            'x-rapidapi-key': settings.RAPIDAPI_KEY,
+            'x-rapidapi-key': "c17966b9aamsh8ca038e379f1074p10ce6ajsn6dfd7cbc367f",
             'x-rapidapi-host': "youtube-mp36.p.rapidapi.com"
         }
         
