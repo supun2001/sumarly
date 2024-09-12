@@ -238,6 +238,9 @@ class DownloadAndTranscribeAPIView(APIView):
             return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def download_from_youtube(self, youtube_url):
+        if not isinstance(youtube_url, str):
+            raise ValueError("The provided URL is not a valid string")
+
         conn = http.client.HTTPSConnection("youtube-mp36.p.rapidapi.com")
         headers = {
             'x-rapidapi-key': settings.RAPIDAPI_KEY,
@@ -259,8 +262,11 @@ class DownloadAndTranscribeAPIView(APIView):
             logger.debug(f"API response: {result}")
 
             if result['status'] == 'ok':
-                file_url = result['link']
-                duration = result['duration']
+                file_url = result.get('link')
+                duration = result.get('duration')
+
+                if not isinstance(file_url, str):
+                    raise ValueError("The file URL received is not a valid string")
 
                 # Download file
                 response = requests.get(file_url)
@@ -291,13 +297,12 @@ class DownloadAndTranscribeAPIView(APIView):
         s3_client.upload_fileobj(uploaded_file, settings.AWS_STORAGE_BUCKET_NAME, audio_s3_key)
         return audio_s3_key
 
-    def get_audio_duration_from_s3(self, audio_s3_key):
+    def get_audio_duration_from_s3(self, s3_key):
         s3_client = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID, aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
-        with io.BytesIO() as file_obj:
-            s3_client.download_fileobj(settings.AWS_STORAGE_BUCKET_NAME, audio_s3_key, file_obj)
-            file_obj.seek(0)
-            audio = MP3(file_obj)
-            return audio.info.length
+        s3_object = s3_client.get_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=s3_key)
+        audio_file = io.BytesIO(s3_object['Body'].read())
+        audio = MP3(audio_file)
+        return audio.info.length
 
     def transcribe_and_summarize(self, audio_s3_key, user_id, context, current_time, duration):
         s3_client = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID, aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
