@@ -19,6 +19,8 @@ import boto3
 import logging
 from django.contrib.auth.hashers import make_password
 import uuid
+import http.client
+import json
 
 
 # Set up AssemblyAI API key
@@ -197,7 +199,7 @@ from yt_dlp import YoutubeDL
 
 class DownloadAndTranscribeAPIView(APIView):
     permission_classes = [AllowAny]
-    
+
     def post(self, request, *args, **kwargs):
         user = request.user
         user_id = user.id
@@ -211,7 +213,7 @@ class DownloadAndTranscribeAPIView(APIView):
                 return Response({"error": "URL is required"}, status=status.HTTP_400_BAD_REQUEST)
 
             try:
-                audio_path, s3_file_key = self.download_from_youtube(youtube_url)
+                audio_path, s3_file_key, duration = self.get_youtube_audio_via_api(youtube_url)
             except Exception as e:
                 return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -220,6 +222,7 @@ class DownloadAndTranscribeAPIView(APIView):
             uploaded_file = request.FILES['file']
             s3_file_key = self.save_uploaded_file_to_s3(uploaded_file)
             audio_path = uploaded_file.name
+            duration = get_audio_length(audio_path)  # Replace with your function to calculate audio duration
         else:
             return Response({"error": "No URL or file provided"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -232,7 +235,7 @@ class DownloadAndTranscribeAPIView(APIView):
             if current_time <= 0:
                 return Response({"error": "Your time limit is over"}, status=status.HTTP_403_FORBIDDEN)
 
-            summary, new_time = self.transcribe_and_summarize(s3_file_key, user_id, context, current_time)
+            summary, new_time = self.transcribe_and_summarize(s3_file_key, user_id, context, current_time, duration)
             return Response({
                 "status": "success",
                 "summary": summary,
@@ -241,42 +244,50 @@ class DownloadAndTranscribeAPIView(APIView):
         except Exception as e:
             return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def download_from_youtube(self, youtube_url):
-        ydl_opts = {
-            'format': 'bestaudio/best',
-            'outtmpl': '/tmp/%(title)s.%(ext)s',
-            'postprocessors': [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '192',
-            }],
-            'cookiefile': 'cookies.txt',  # Add your cookies.txt file path here
+    def get_youtube_audio_via_api(self, youtube_url):
+        # Extract YouTube ID from the URL
+        video_id = youtube_url.split('v=')[-1]
+
+        # Setup API connection
+        conn = http.client.HTTPSConnection("youtube-mp36.p.rapidapi.com")
+        headers = {
+            'x-rapidapi-key': "YOUR_RAPIDAPI_KEY",
+            'x-rapidapi-host': "youtube-mp36.p.rapidapi.com"
         }
 
-        with YoutubeDL(ydl_opts) as ydl:
-            ydl.download([youtube_url])
+        # Send request to get the download link and details
+        conn.request("GET", f"/dl?id={video_id}", headers=headers)
+        res = conn.getresponse()
+        data = res.read().decode("utf-8")
 
-        downloaded_files = [file for file in os.listdir('/tmp') if file.endswith('.mp3')]
-        if not downloaded_files:
-            raise FileNotFoundError("No MP3 files found after download.")
+        # Parse the response
+        parsed_data = json.loads(data)
+        if parsed_data.get('status') != 'ok':
+            raise Exception(parsed_data.get('msg', 'Error fetching data from API'))
 
-        local_file_path = os.path.join('/tmp', downloaded_files[0])
-        s3_file_key = f'downloads/{downloaded_files[0]}'
+        # Extract relevant data
+        download_link = parsed_data.get('link')
+        duration = parsed_data.get('duration')  # Duration in seconds
 
-        self.upload_to_s3(local_file_path, s3_file_key)
-        os.remove(local_file_path)
+        # Here you can download the audio using the download link (or pass the link to the front end)
+        # For now, we're assuming the audio will be downloaded and stored in an S3 bucket
+        s3_file_key = f'downloads/{video_id}.mp3'
+        self.download_from_url(download_link, s3_file_key)
 
-        return local_file_path, s3_file_key
+        return download_link, s3_file_key, duration
+
+    def download_from_url(self, url, s3_file_key):
+        # Implement the logic to download the file from the URL and upload it to S3
+        # For simplicity, this can be a function that streams the file to your S3 bucket.
+        pass
 
     def save_uploaded_file_to_s3(self, uploaded_file):
         s3_file_key = f'uploads/{uploaded_file.name}'
         s3_client.upload_fileobj(uploaded_file, settings.AWS_STORAGE_BUCKET_NAME, s3_file_key)
         return s3_file_key
 
-    def upload_to_s3(self, file_path, s3_file_key):
-        s3_client.upload_file(file_path, settings.AWS_STORAGE_BUCKET_NAME, s3_file_key)
-
-    def transcribe_and_summarize(self, s3_file_key, user_id, context, current_time):
+    def transcribe_and_summarize(self, s3_file_key, user_id, context, current_time, duration):
+        # Implement the logic to transcribe and summarize the audio file
         local_file_path = f'/tmp/{os.path.basename(s3_file_key)}'
         s3_client.download_file(settings.AWS_STORAGE_BUCKET_NAME, s3_file_key, local_file_path)
 
@@ -288,9 +299,11 @@ class DownloadAndTranscribeAPIView(APIView):
             params['context'] = context
 
         summary = transcript.lemur.summarize(**params).response.strip().split('\n')
-        audio_length = get_audio_length(local_file_path)
-        new_time = max(current_time - audio_length, 0)
+        
+        # Deduct the duration from the user's available time
+        new_time = max(current_time - duration, 0)
 
+        # Update user's time in the database
         user_data = UserData.objects.filter(author_id=user_id).first()
         if user_data:
             user_data.time = new_time

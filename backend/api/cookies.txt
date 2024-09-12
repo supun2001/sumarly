@@ -1,2 +1,0 @@
-# HTTP cookie file.
-https://49afe63c-c025-4bb6-81f4-85adcc933e76.e1-eu-north-azure.choreoapps.dev/	TRUE	/	FALSE	1648767387	csrftoken	KhuVp02YflNKBOTGv9GnRDPGsQOJ21bv
