@@ -240,7 +240,7 @@ class DownloadAndTranscribeAPIView(APIView):
     def download_from_youtube(self, youtube_url):
         conn = http.client.HTTPSConnection("youtube-mp36.p.rapidapi.com")
         headers = {
-            'x-rapidapi-key': "c17966b9aamsh8ca038e379f1074p10ce6ajsn6dfd7cbc367f",
+            'x-rapidapi-key': settings.RAPIDAPI_KEY,
             'x-rapidapi-host': "youtube-mp36.p.rapidapi.com"
         }
         
@@ -250,20 +250,23 @@ class DownloadAndTranscribeAPIView(APIView):
 
         for attempt in range(retries):
             conn.request("GET", f"/dl?id={video_id}", headers=headers)
-
             res = conn.getresponse()
             data = res.read().decode("utf-8")
             result = json.loads(data)
+
+            # Log the response for debugging
+            logger.debug(f"API response: {result}")
 
             if result['status'] == 'ok':
                 file_url = result['link']
                 duration = result['duration']
 
-                # Upload file to S3
+                # Download file
                 response = requests.get(file_url)
                 if response.status_code != 200:
                     raise Exception(f"Failed to download file: {response.status_code}")
 
+                # Upload file to S3
                 audio_s3_key = f'downloads/{result["title"]}.mp3'
                 s3_client = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID, aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
                 s3_client.upload_fileobj(io.BytesIO(response.content), settings.AWS_STORAGE_BUCKET_NAME, audio_s3_key)
@@ -282,27 +285,30 @@ class DownloadAndTranscribeAPIView(APIView):
 
     def upload_file_to_s3(self, uploaded_file):
         s3_client = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID, aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
-        s3_file_key = f'uploads/{uploaded_file.name}'
-        s3_client.upload_fileobj(uploaded_file, settings.AWS_STORAGE_BUCKET_NAME, s3_file_key)
-        return s3_file_key
+        audio_s3_key = f'uploads/{uploaded_file.name}'
+        s3_client.upload_fileobj(uploaded_file, settings.AWS_STORAGE_BUCKET_NAME, audio_s3_key)
+        return audio_s3_key
 
-    def get_audio_duration_from_s3(self, s3_file_key):
+    def get_audio_duration_from_s3(self, audio_s3_key):
         s3_client = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID, aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
         with io.BytesIO() as file_obj:
-            s3_client.download_fileobj(settings.AWS_STORAGE_BUCKET_NAME, s3_file_key, file_obj)
+            s3_client.download_fileobj(settings.AWS_STORAGE_BUCKET_NAME, audio_s3_key, file_obj)
             file_obj.seek(0)
             audio = MP3(file_obj)
             return audio.info.length
 
-    def transcribe_and_summarize(self, s3_file_key, user_id, context, current_time, duration):
+    def transcribe_and_summarize(self, audio_s3_key, user_id, context, current_time, duration):
         s3_client = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID, aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
-        local_file_path = f'/tmp/{s3_file_key.split("/")[-1]}'
-        
-        with open(local_file_path, 'wb') as f:
-            s3_client.download_fileobj(settings.AWS_STORAGE_BUCKET_NAME, s3_file_key, f)
+        with io.BytesIO() as file_obj:
+            s3_client.download_fileobj(settings.AWS_STORAGE_BUCKET_NAME, audio_s3_key, file_obj)
+            file_obj.seek(0)
+            audio_path = f'/tmp/{audio_s3_key}'
+
+            with open(audio_path, 'wb') as f:
+                f.write(file_obj.read())
 
         transcriber = aai.Transcriber()
-        transcript = transcriber.transcribe(local_file_path)
+        transcript = transcriber.transcribe(audio_path)
 
         params = {
             'answer_format': "**<part of the lesson>**\n<list of important points in that part>",
@@ -320,7 +326,8 @@ class DownloadAndTranscribeAPIView(APIView):
             user_data.transcript = transcript
             user_data.save()
 
-        os.remove(local_file_path)
+        # Clean up
+        os.remove(audio_path)
         return summary, new_time
 
 
