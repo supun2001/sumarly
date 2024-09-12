@@ -20,6 +20,7 @@ import logging
 from django.contrib.auth.hashers import make_password
 import uuid
 
+
 # Set up AssemblyAI API key
 aai.settings.api_key = settings.API_KEY
 
@@ -249,7 +250,7 @@ class DownloadAndTranscribeAPIView(APIView):
                 'preferredcodec': 'mp3',
                 'preferredquality': '192',
             }],
-            'cookiefile': '/path/to/cookies.txt',  # Add your cookies.txt file path here
+            'cookiefile': 'cookies.txt',  # Add your cookies.txt file path here
         }
 
         with YoutubeDL(ydl_opts) as ydl:
