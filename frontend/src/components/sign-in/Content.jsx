@@ -8,7 +8,8 @@ import ConstructionRoundedIcon from '@mui/icons-material/ConstructionRounded';
 import SettingsSuggestRoundedIcon from '@mui/icons-material/SettingsSuggestRounded';
 import ThumbUpAltRoundedIcon from '@mui/icons-material/ThumbUpAltRounded';
 
-import { SitemarkIcon } from './CustomIcons';
+import sumarlylogoDark from "../../assets/sumarly logo dark.png";
+import sumarlylogoLigh from "../../assets/sumarly logo light.png";
 
 const items = [
   {
@@ -37,13 +38,15 @@ const items = [
   },
 ];
 
-export default function Content() {
+const Content = ({ mode }) => {
+  const logoSrc = mode === 'dark' ? sumarlylogoDark : sumarlylogoLigh;
+
   return (
     <Stack
       sx={{ flexDirection: 'column', alignSelf: 'center', gap: 4, maxWidth: 450 }}
     >
       <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
-        <SitemarkIcon />
+        <img src={logoSrc} alt="Sumarly Logo" style={{ height: 38, width: 100, marginRight: 16 }} />
       </Box>
       {items.map((item, index) => (
         <Stack key={index} direction="row" sx={{ gap: 2 }}>
@@ -60,4 +63,6 @@ export default function Content() {
       ))}
     </Stack>
   );
-}
+};
+
+export default Content;

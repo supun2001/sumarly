@@ -58,7 +58,7 @@ export default function SignInSide({ route, method }) {
             p: 2,
           }}
         >
-          <Content />
+          <Content mode={mode}/>
           <SignInCard route={route} method={method} />
         </Stack>
       </Stack>

@@ -8,17 +8,19 @@ import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import FacebookIcon from '@mui/icons-material/GitHub';
+import GitHubIcon from '@mui/icons-material/GitHub'; // Adjusted import
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
-import TwitterIcon from '@mui/icons-material/X';
-import SitemarkIcon from './SitemarkIcon';
+import TwitterIcon from '@mui/icons-material/Twitter'; // Adjusted import
+
+import sumarlylogoDark from "../assets/sumarly logo dark.png";
+import sumarlylogoLigh from "../assets/sumarly logo light.png";
 
 function Copyright() {
   return (
     <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
       {'Copyright © '}
       <Link color="text.secondary" href="https://mui.com/">
-        Sitemark
+        Noble Line IT
       </Link>
       &nbsp;
       {new Date().getFullYear()}
@@ -26,7 +28,9 @@ function Copyright() {
   );
 }
 
-export default function Footer() {
+export default function Footer({ mode }) {
+  const logoSrc = mode === 'dark' ? sumarlylogoDark : sumarlylogoLigh;
+
   return (
     <Container
       sx={{
@@ -55,7 +59,7 @@ export default function Footer() {
           }}
         >
           <Box sx={{ width: { xs: '100%', sm: '60%' } }}>
-            <SitemarkIcon />
+            <img src={logoSrc} alt="Sumarly Logo" style={{ height: 38, width: 100, marginRight: 16 }} />
             <Typography variant="body2" gutterBottom sx={{ fontWeight: 600, mt: 2 }}>
               Join the newsletter
             </Typography>
@@ -72,11 +76,9 @@ export default function Footer() {
                 fullWidth
                 aria-label="Enter your email address"
                 placeholder="Your email address"
-                slotProps={{
-                  htmlInput: {
-                    autoComplete: 'off',
-                    'aria-label': 'Enter your email address',
-                  },
+                inputProps={{
+                  autoComplete: 'off',
+                  'aria-label': 'Enter your email address',
                 }}
                 sx={{ width: '250px' }}
               />
@@ -186,12 +188,11 @@ export default function Footer() {
           useFlexGap
           sx={{ justifyContent: 'left', color: 'text.secondary' }}
         >
-
           <IconButton
             color="inherit"
             size="small"
-            href="https://x.com/MaterialUI"
-            aria-label="X"
+            href="https://twitter.com/MaterialUI"
+            aria-label="Twitter"
             sx={{ alignSelf: 'center' }}
           >
             <TwitterIcon />
@@ -204,6 +205,15 @@ export default function Footer() {
             sx={{ alignSelf: 'center' }}
           >
             <LinkedInIcon />
+          </IconButton>
+          <IconButton
+            color="inherit"
+            size="small"
+            href="https://github.com/mui/material-ui"
+            aria-label="GitHub"
+            sx={{ alignSelf: 'center' }}
+          >
+            <GitHubIcon />
           </IconButton>
         </Stack>
       </Box>

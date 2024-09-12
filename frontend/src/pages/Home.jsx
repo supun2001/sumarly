@@ -53,7 +53,7 @@ function Home() {
           <Highlights />
           <Pricing />
           <FAQ />
-          <Footer />
+          <Footer mode={mode}/>
         </div>
       </ThemeProvider>
     );

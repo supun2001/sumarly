@@ -56,7 +56,6 @@ export default function LogoutMenu({ email }) {
             })
             .catch((err) => alert(err));
     };
-    console.log("Notes : " +notes)
 
     return (
         <>

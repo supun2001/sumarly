@@ -78,8 +78,6 @@ export default function AppAppBar({ mode, toggleColorMode }) {
         <StyledToolbar variant="dense" disableGutters>
           <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', px: 0 }}>
             <img src={logoSrc} alt="Sumarly Logo" style={{ height: 38, width: 100, mr: 2 }} />
-
-            {/* <Sitemark /> */}
             <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
               <Button variant="text" color="info" size="small" onClick={() => handleScrollToSection('features')}>
                 Features

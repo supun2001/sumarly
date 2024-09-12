@@ -46,11 +46,14 @@ export default function SignInCard({ route, method }) {
   const [emailErrorMessage, setEmailErrorMessage] = React.useState('');
   const [passwordError, setPasswordError] = React.useState(false);
   const [passwordErrorMessage, setPasswordErrorMessage] = React.useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = React.useState(false);
+  const [confirmPasswordErrorMessage, setConfirmPasswordErrorMessage] = React.useState('');
   const [open, setOpen] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState(""); // New state for confirm password
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -123,6 +126,15 @@ export default function SignInCard({ route, method }) {
       setPasswordErrorMessage('');
     }
 
+    if (method === "register" && password !== confirmPassword) {
+      setConfirmPasswordError(true);
+      setConfirmPasswordErrorMessage('Passwords do not match.');
+      isValid = false;
+    } else {
+      setConfirmPasswordError(false);
+      setConfirmPasswordErrorMessage('');
+    }
+
     return isValid;
   };
 
@@ -165,14 +177,16 @@ export default function SignInCard({ route, method }) {
         <FormControl>
           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
             <Typography>Password</Typography>
-            <Link
-              component="button"
-              onClick={handleClickOpen}
-              variant="body2"
-              sx={{ alignSelf: 'baseline' }}
-            >
-              Forgot your password?
-            </Link>
+            {method === "login" && (
+              <Link
+                component="button"
+                onClick={handleClickOpen}
+                variant="body2"
+                sx={{ alignSelf: 'baseline' }}
+              >
+                Forgot your password?
+              </Link>
+            )}
           </Box>
           <TextField
             error={passwordError}
@@ -190,22 +204,55 @@ export default function SignInCard({ route, method }) {
             sx={{ ariaLabel: 'password' }}
           />
         </FormControl>
+        {method === "register" && (
+          <FormControl>
+            <Typography>Confirm Password</Typography>
+            <TextField
+              error={confirmPasswordError}
+              helperText={confirmPasswordErrorMessage}
+              name="confirmPassword"
+              placeholder="••••••"
+              type="password"
+              id="confirmPassword"
+              autoComplete="new-password"
+              required
+              fullWidth
+              variant="outlined"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              sx={{ ariaLabel: 'confirm-password' }}
+            />
+          </FormControl>
+        )}
 
         <ForgotPassword open={open} handleClose={handleClose} />
         <Button type="submit" fullWidth variant="contained" disabled={loading}>
           {loading ? 'Loading...' : name}
         </Button>
         <Typography sx={{ textAlign: 'center' }}>
-          Don&apos;t have an account?{' '}
-          <span>
-            <Link
-              href="/register"
-              variant="body2"
-              sx={{ alignSelf: 'center' }}
-            >
-              Sign up
-            </Link>
-          </span>
+          {method === "login" ? (
+            <>
+              Don&apos;t have an account?{' '}
+              <Link
+                href="/register"
+                variant="body2"
+                sx={{ alignSelf: 'center' }}
+              >
+                Sign up
+              </Link>
+            </>
+          ) : (
+            <>
+              Already have an account?{' '}
+              <Link
+                href="/login"
+                variant="body2"
+                sx={{ alignSelf: 'center' }}
+              >
+                Log in
+              </Link>
+            </>
+          )}
         </Typography>
       </Box>
       
