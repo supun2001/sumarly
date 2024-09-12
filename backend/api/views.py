@@ -240,11 +240,13 @@ class DownloadAndTranscribeAPIView(APIView):
     def download_from_youtube(self, youtube_url):
         conn = http.client.HTTPSConnection("youtube-mp36.p.rapidapi.com")
         headers = {
-            'x-rapidapi-key': "c17966b9aamsh8ca038e379f1074p10ce6ajsn6dfd7cbc367f",
+            'x-rapidapi-key': settings.RAPIDAPI_KEY,
             'x-rapidapi-host': "youtube-mp36.p.rapidapi.com"
         }
         
         video_id = youtube_url.split('=')[-1]
+        logger.debug(f"Extracted video ID: {video_id}")
+
         retries = 5
         backoff = 5
 
@@ -254,7 +256,6 @@ class DownloadAndTranscribeAPIView(APIView):
             data = res.read().decode("utf-8")
             result = json.loads(data)
 
-            # Log the response for debugging
             logger.debug(f"API response: {result}")
 
             if result['status'] == 'ok':
@@ -275,6 +276,7 @@ class DownloadAndTranscribeAPIView(APIView):
 
             elif result['status'] == 'in process':
                 # Retry logic with exponential backoff
+                logger.info("API response indicates 'in process'. Retrying...")
                 time.sleep(backoff)
                 backoff *= 2  # Exponential backoff
 
