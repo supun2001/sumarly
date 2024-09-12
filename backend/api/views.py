@@ -208,11 +208,13 @@ class DownloadAndTranscribeAPIView(APIView):
         try:
             if 'url' in request.data:
                 youtube_url = request.data.get('url')
-                if not youtube_url:
-                    return Response({"error": "URL is required"}, status=status.HTTP_400_BAD_REQUEST)
+                if not isinstance(youtube_url, str) or not youtube_url:
+                    return Response({"error": "Valid URL is required"}, status=status.HTTP_400_BAD_REQUEST)
                 audio_s3_key, duration = self.download_from_youtube(youtube_url)
             elif 'file' in request.FILES:
                 uploaded_file = request.FILES['file']
+                if not hasattr(uploaded_file, 'file') or uploaded_file.size == 0:
+                    return Response({"error": "Valid file is required"}, status=status.HTTP_400_BAD_REQUEST)
                 audio_s3_key = self.upload_file_to_s3(uploaded_file)
                 duration = self.get_audio_duration_from_s3(audio_s3_key)
             else:
@@ -292,17 +294,24 @@ class DownloadAndTranscribeAPIView(APIView):
         raise Exception("API processing time exceeded. Please try again later.")
 
     def upload_file_to_s3(self, uploaded_file):
+        if not hasattr(uploaded_file, 'file') or uploaded_file.size == 0:
+            raise ValueError("The uploaded file is not valid")
+
         s3_client = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID, aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
         audio_s3_key = f'uploads/{uploaded_file.name}'
         s3_client.upload_fileobj(uploaded_file, settings.AWS_STORAGE_BUCKET_NAME, audio_s3_key)
         return audio_s3_key
 
     def get_audio_duration_from_s3(self, s3_key):
+        if not isinstance(s3_key, str) or not s3_key:
+            raise ValueError("Invalid S3 key provided")
+
         s3_client = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID, aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
         s3_object = s3_client.get_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=s3_key)
         audio_file = io.BytesIO(s3_object['Body'].read())
         audio = MP3(audio_file)
         return audio.info.length
+
 
     def transcribe_and_summarize(self, audio_s3_key, user_id, context, current_time, duration):
         s3_client = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID, aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
