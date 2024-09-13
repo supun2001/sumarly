@@ -99,6 +99,29 @@ export default function Features() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const fetchEmailConfirmation = async () => {
+      try {
+        const res = await api.get("/api/notes/");
+        const notes = res.data;
+        if (Array.isArray(notes)) {
+          if (notes.length > 0) {
+            setUserConfirmation(notes[0].confirmed);
+          } else {
+            setUserConfirmation(false);
+          }
+        } else {
+          setAlertMessage("Please confirm your email");
+          setAlertSeverity("error");
+          setOpenAlert(true);
+        }
+      } catch (error) {
+        setAlertMessage("Error fetching data: " + (error.response?.data?.message || error.message));
+        setAlertSeverity("error");
+        setOpenAlert(true);
+      }
+    };
+
+    fetchEmailConfirmation();
     if (loginConfirmed) {
       navigate('/login'); // Navigate to login after logout
     }
@@ -109,26 +132,27 @@ export default function Features() {
     if (storedEmail) {
       setEmail(storedEmail);
     } 
+
   }, []);
 
   const handleChange = (event, newValue) => {
     setValue(newValue);
   };
 
-  const getNotes = () => {
+  const getNotes = async () => {
     api
       .get("/api/notes/")
       .then((res) => {
         const notes = res.data;
+        console.log(notes)
         if (Array.isArray(notes)) {
           // Check if notes array has at least one item
           if (notes.length > 0) {
             const firstNote = notes[0]; // Access the first item in the array
             const firstTranscript = firstNote.transcript;
             setTranscript(firstTranscript);
-            setUserConfirmation(firstNote.confirmed);
+
           } else {
-            setUserConfirmation(false);
             setTranscript(null);
           }
         } else {
@@ -144,6 +168,7 @@ export default function Features() {
         // setOpenAlert(true);
       });
   };
+  console.log("Email "+userConfirmation)
 
   const handleTranscribeSubmit = async (e) => {
     e.preventDefault();

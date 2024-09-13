@@ -70,7 +70,7 @@ export default function LogoutMenu({ email }) {
                     </MenuItem>
                     <MenuItem>
                         <Typography variant="body1" color="text.primary">
-                            Time : {notes.time || 'No data available'}
+                            Time : {notes.time }
                         </Typography>
                     </MenuItem>
                     <Divider />
