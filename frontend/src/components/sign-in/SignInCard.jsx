@@ -67,6 +67,8 @@ export default function SignInCard({ route, method }) {
     setOpen(false);
   };
 
+  
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!validateInputs()) return;

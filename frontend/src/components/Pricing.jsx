@@ -86,7 +86,6 @@ export default function Pricing() {
     }
   };
 
-  console.log('Email : '+email)
 
   return (
     <Container

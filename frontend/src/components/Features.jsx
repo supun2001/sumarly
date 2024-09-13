@@ -111,7 +111,6 @@ export default function Features() {
     } 
   }, []);
 
-  console.log(email)
   const handleChange = (event, newValue) => {
     setValue(newValue);
   };
@@ -121,9 +120,7 @@ export default function Features() {
       .get("/api/notes/")
       .then((res) => {
         const notes = res.data;
-        console.log(notes)
         if (Array.isArray(notes)) {
-          setNotes(notes);
           // Check if notes array has at least one item
           if (notes.length > 0) {
             const firstNote = notes[0]; // Access the first item in the array
@@ -147,9 +144,6 @@ export default function Features() {
         // setOpenAlert(true);
       });
   };
-  console.log(transcript)
-  console.log('User confirmtaion : ' + userConfirmation)
-
 
   const handleTranscribeSubmit = async (e) => {
     e.preventDefault();

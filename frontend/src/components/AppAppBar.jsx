@@ -46,9 +46,6 @@ export default function AppAppBar({ mode, toggleColorMode }) {
     const storedEmail = localStorage.getItem('email');
     if (storedEmail) {
       setEmail(storedEmail);
-      console.log('Retrieved email:', storedEmail); // Log the email to the console
-    } else {
-      console.log('No email found in localStorage');
     }
   }, []);
 

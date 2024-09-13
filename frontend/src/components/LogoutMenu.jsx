@@ -47,7 +47,6 @@ export default function LogoutMenu({ email }) {
         api
             .get("/api/notes/")
             .then((res) => {
-                console.log(res.data);  // Log the entire response data
                 return res.data;
             })
             .then((data) => {
