@@ -49,7 +49,7 @@ export default function Hero() {
               mb: 0, // Ensure no bottom margin
             }}
           >
-            The&nbsp;best&nbsp;
+            The&nbsp;Best&nbsp;
             <Typography
               component="span"
               variant="h1"
@@ -61,7 +61,7 @@ export default function Hero() {
                 }),
               })}
             >
-              summariser
+              Summarizer
             </Typography>
           </Typography>
           <Typography

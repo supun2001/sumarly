@@ -16,8 +16,8 @@ import ToggleColorMode from './ToggleColorMode';
 import Typography from '@mui/material/Typography';
 import LogoutMenu from "./LogoutMenu";
 import { useNavigate } from 'react-router-dom';
-import sumarlylogoDark from "../assets/sumarly logo dark.png"
-import sumarlylogoLigh from "../assets/sumarly logo light.png"
+import sumarlylogoDark from "../assets/sumarly logo dark.png";
+import sumarlylogoLigh from "../assets/sumarly logo light.png";
 
 const StyledToolbar = styled(Toolbar)(({ theme }) => ({
   display: 'flex',
@@ -31,6 +31,7 @@ const StyledToolbar = styled(Toolbar)(({ theme }) => ({
   backgroundColor: alpha(theme.palette.background.default, 0.4),
   boxShadow: theme.shadows[1],
   padding: '8px 12px',
+  marginTop: '-35px'
 }));
 
 export default function AppAppBar({ mode, toggleColorMode }) {
@@ -57,6 +58,12 @@ export default function AppAppBar({ mode, toggleColorMode }) {
     navigate('/register'); // Navigate to the register page
   };
 
+  const handleLogout = () => {
+    // Perform any necessary cleanup, e.g., clearing tokens or local storage
+    localStorage.removeItem('email'); // Clear the stored email
+    navigate('/logout'); // Navigate to the logout route
+  };
+
   // Function to handle smooth scrolling to a specific section
   const handleScrollToSection = (sectionId) => {
     const element = document.getElementById(sectionId);
@@ -64,6 +71,7 @@ export default function AppAppBar({ mode, toggleColorMode }) {
       element.scrollIntoView({ behavior: 'smooth' });
     }
   };
+
   const logoSrc = mode === 'dark' ? sumarlylogoDark : sumarlylogoLigh;
 
   return (
@@ -91,7 +99,6 @@ export default function AppAppBar({ mode, toggleColorMode }) {
               <Button variant="text" color="info" size="small" onClick={() => handleScrollToSection('faq')}>
                 FAQ
               </Button>
-
             </Box>
           </Box>
           <Box
@@ -107,7 +114,25 @@ export default function AppAppBar({ mode, toggleColorMode }) {
               toggleColorMode={toggleColorMode}
             />
             {email ? (
-              <LogoutMenu email={email}/>
+              <>
+                
+                <Button
+                  variant="contained"
+                  fullWidth
+                  onClick={handleLogout}
+                  sx={{
+                    backgroundColor: '#ffffff', // Default background color
+                    color: '#c82333', // Text color, ensure it’s visible on the white background
+                    '&:hover': {
+                      backgroundColor: '#c82333', // Background color on hover
+                      color: '#ffffff' // Text color on hover, ensure it’s visible on the red background
+                    }
+                  }}
+                >
+                  Logout
+                </Button>
+                <LogoutMenu email={email} />
+              </>
             ) : (
               <>
                 <Button color="primary" variant="text" size="small" onClick={handleSignInClick}>
@@ -150,10 +175,29 @@ export default function AppAppBar({ mode, toggleColorMode }) {
                   />
                 </MenuItem>
                 {email ? (
-                  <MenuItem>
-                  {/* <LogoutMenu /> */}
-                    <LogoutMenu email={email}/>
-                  </MenuItem>
+                  <>
+
+                    <MenuItem sx={{ py: 1, position: 'relative', zIndex: 10 }}>
+                      <Button
+                        variant="contained"
+                        fullWidth
+                        onClick={handleLogout}
+                        sx={{
+                          backgroundColor: '#ffffff', // Default background color
+                          color: '#c82333', // Text color, ensure it’s visible on the white background
+                          '&:hover': {
+                            backgroundColor: '#c82333', // Background color on hover
+                            color: '#ffffff' // Text color on hover, ensure it’s visible on the red background
+                          }
+                        }}
+                      >
+                        Logout
+                      </Button>
+                    </MenuItem>
+                    <MenuItem sx={{ py: 1, position: 'relative', zIndex: 10 }}>
+                      <LogoutMenu email={email} />
+                    </MenuItem>
+                  </>
                 ) : (
                   <>
                     <MenuItem>

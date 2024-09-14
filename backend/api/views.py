@@ -245,11 +245,21 @@ class DownloadAndTranscribeAPIView(APIView):
     def download_from_youtube(self, youtube_url):
         if not isinstance(youtube_url, str):
             raise ValueError("The provided URL is not a valid string")
-        
-        # Parse the URL and extract the video ID
-        parsed_url = urlparse(youtube_url)
-        query_params = parse_qs(parsed_url.query)
-        video_id = query_params.get('v', [None])[0]
+
+        def extract_video_id(url):
+            parsed_url = urlparse(url)
+            if parsed_url.netloc == 'youtu.be':
+                # Shortened URL format
+                return parsed_url.path.strip('/')
+            elif parsed_url.netloc == 'www.youtube.com' and 'watch' in parsed_url.path:
+                # Standard URL format
+                query_params = parse_qs(parsed_url.query)
+                return query_params.get('v', [None])[0]
+            else:
+                return None
+
+        # Extract video ID
+        video_id = extract_video_id(youtube_url)
 
         if video_id is None:
             raise ValueError("No valid video ID found in the URL")

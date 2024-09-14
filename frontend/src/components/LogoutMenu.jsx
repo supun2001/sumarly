@@ -12,14 +12,13 @@ import Typography from '@mui/material/Typography';
 import { Divider, Dialog, DialogActions, DialogContent, DialogTitle, Button } from '@mui/material';
 import DialogContentText from '@mui/material/DialogContentText';
 import { useNavigate } from 'react-router-dom';
-import api from "../api"
+import api from "../api";
 
 export default function LogoutMenu({ email }) {
     const [open, setOpen] = useState(false);
     const [notes, setNotes] = useState({});
     const [logoutConfirmed, setLogoutConfirmed] = useState(false);
     const navigate = useNavigate();
-    const [storedEmail, setStoredEmail] = useState(false);
 
     const handleClickOpen = () => {
         setOpen(true);
@@ -40,7 +39,6 @@ export default function LogoutMenu({ email }) {
         if (logoutConfirmed) {
             navigate('/login');
         }
-        
     }, [logoutConfirmed, navigate]);
 
     const getNotes = () => {
@@ -70,11 +68,9 @@ export default function LogoutMenu({ email }) {
                     </MenuItem>
                     <MenuItem>
                         <Typography variant="body1" color="text.primary">
-                            Time : {notes.time }
+                            Time : {notes.time}
                         </Typography>
                     </MenuItem>
-                    <Divider />
-                    <MenuItemLogout onClick={handleClickOpen}>Log out</MenuItemLogout>
                 </Menu>
             </Dropdown>
 
@@ -198,7 +194,7 @@ AnimatedListbox.propTypes = {
 const MenuItem = styled(BaseMenuItem)(
     ({ theme }) => `
     list-style: none;
-    padding: 8px;
+    padding: 8px 16px;
     border-radius: 8px;
     cursor: default;
     user-select: none;
@@ -220,7 +216,7 @@ const MenuItem = styled(BaseMenuItem)(
 const MenuItemLogout = styled(BaseMenuItem)(
     ({ theme }) => `
     list-style: none;
-    padding: 8px;
+    padding: 8px 16px;
     border-radius: 8px;
     cursor: pointer;
     user-select: none;
@@ -236,8 +232,8 @@ const MenuItemLogout = styled(BaseMenuItem)(
     
     &:focus {
         outline: 3px solid ${theme.palette.mode === 'dark' ? blue[600] : blue[200]};
-        background-color: ${theme.palette.mode === 'dark' ? '#c82333' : '#c82333'}; /* Darker shade of danger color */
-        color: #fff; /* White text color */
+        background-color: ${theme.palette.mode === 'dark' ? '#c82333' : '#c82333'};
+        color: #fff;
     }
     
     &.${menuItemClasses.disabled} {
