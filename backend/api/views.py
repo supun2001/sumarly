@@ -23,6 +23,7 @@ import requests
 import time
 import io
 import tempfile 
+from urllib.parse import urlparse, parse_qs
 
 # Set up AssemblyAI API key
 aai.settings.api_key = settings.API_KEY
@@ -207,9 +208,12 @@ class DownloadAndTranscribeAPIView(APIView):
         try:
             if 'url' in request.data:
                 youtube_url = request.data.get('url')
+                print(context)
+                print(youtube_url)
                 if not isinstance(youtube_url, str) or not youtube_url:
                     return Response({"error": "Valid URL is required"}, status=status.HTTP_400_BAD_REQUEST)
                 audio_s3_key, duration = self.download_from_youtube(youtube_url)
+                
             elif 'file' in request.FILES:
                 uploaded_file = request.FILES['file']
                 if not hasattr(uploaded_file, 'file') or uploaded_file.size == 0:
@@ -241,6 +245,14 @@ class DownloadAndTranscribeAPIView(APIView):
     def download_from_youtube(self, youtube_url):
         if not isinstance(youtube_url, str):
             raise ValueError("The provided URL is not a valid string")
+        
+        # Parse the URL and extract the video ID
+        parsed_url = urlparse(youtube_url)
+        query_params = parse_qs(parsed_url.query)
+        video_id = query_params.get('v', [None])[0]
+
+        if video_id is None:
+            raise ValueError("No valid video ID found in the URL")
 
         conn = http.client.HTTPSConnection("youtube-mp36.p.rapidapi.com")
         headers = {
@@ -250,8 +262,6 @@ class DownloadAndTranscribeAPIView(APIView):
 
         # Log headers to check if they are set correctly
         logger.debug(f"Request headers: {headers}")
-
-        video_id = youtube_url.split('=')[-1]
         logger.debug(f"Extracted video ID: {video_id}")
 
         retries = 5
