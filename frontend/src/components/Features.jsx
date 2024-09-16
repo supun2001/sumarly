@@ -170,9 +170,16 @@ export default function Features() {
   };
   console.log("Email "+userConfirmation)
 
+  const isValidYouTubeUrl = (url) => {
+    const standardUrlPattern = /^https:\/\/www\.youtube\.com\/watch\?v=[a-zA-Z0-9_-]+$/;
+    const shortenedUrlPattern = /^https:\/\/youtu\.be\/[a-zA-Z0-9_-]+$/;
+  
+    return standardUrlPattern.test(url) || shortenedUrlPattern.test(url);
+  };
+  
   const handleTranscribeSubmit = async (e) => {
     e.preventDefault();
-
+  
     // Check if email exists
     if (!email) {
       setAlertMessage("You need to log in to access this feature.");
@@ -182,21 +189,30 @@ export default function Features() {
       setTimeout(() => {
         navigate('/login');
       }, 2000);
-    
+  
       return;
     }
+  
+    // Validate YouTube URL
+    if (!isValidYouTubeUrl(youtubeUrl)) {
+      setAlertMessage("Please provide a valid YouTube standard or shortened URL.");
+      setAlertSeverity("error");
+      setOpenAlert(true);
+      return;
+    }
+  
     setLoading(true);
-
+  
     const formData = new FormData();
     if (youtubeUrl) formData.append('url', youtubeUrl);
     if (context) formData.append('context', context);
     if (file) formData.append('file', file);
-
+  
     try {
       const response = await api.post('/api/sumary/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-    
+  
       if (response.status === 200) {
         setResult(response.data);
         setError(null);
@@ -211,7 +227,7 @@ export default function Features() {
         setAlertSeverity("warning");
         setOpenAlert(true);
       } else {
-        setError('Fetch Error: ' + err.message);
+        setError('Please try again later!');
         setResult(null);
       }
     } finally {
@@ -220,14 +236,15 @@ export default function Features() {
       setContext("");
       setFile(null);
     }
-    
   };
+  
   const handleClose = () => {
     setOpenAlert(false);
     if (alertSeverity === "success") {
       setLoginConfirmed(true);
     }
   };
+  
 
 
   return (
@@ -296,7 +313,7 @@ export default function Features() {
                     required
                     value={context}
                     onChange={(e) => setContext(e.target.value)}
-                    label="Content"
+                    label="Title of your file"
                     variant="standard"
                     fullWidth
                     margin="normal"
@@ -354,7 +371,7 @@ export default function Features() {
                     required
                     value={context}
                     onChange={(e) => setContext(e.target.value)}
-                    label="Content"
+                    label="Title of YouTube video"
                     variant="standard"
                     fullWidth
                     margin="normal"
