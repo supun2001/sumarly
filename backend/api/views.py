@@ -25,6 +25,7 @@ import io
 import tempfile 
 from urllib.parse import urlparse, parse_qs
 from pydub import AudioSegment
+from yt_dlp import YoutubeDL
 
 # Set up AssemblyAI API key
 aai.settings.api_key = settings.API_KEY
@@ -196,180 +197,112 @@ class UserDataDelete(generics.DestroyAPIView):
 
 class DownloadAndTranscribeAPIView(APIView):
     permission_classes = [AllowAny]
-
+    
     def post(self, request, *args, **kwargs):
         user = request.user
         user_id = user.id
         context = request.data.get('context', '')
 
+        # Handle YouTube URL input
+        if 'url' in request.data:
+            youtube_url = request.data.get('url')
+
+            if not youtube_url:
+                return Response({"error": "URL is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                audio_path, s3_file_key = self.download_from_youtube(youtube_url)
+            except Exception as e:
+                return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # Handle file upload input
+        elif 'file' in request.FILES:
+            uploaded_file = request.FILES['file']
+            s3_file_key = self.save_uploaded_file_to_s3(uploaded_file)
+            audio_path = uploaded_file.name  # This can be used for processing if needed
+        else:
+            return Response({"error": "No URL or file provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Process transcription and summarization
         try:
-            if 'url' in request.data:
-                youtube_url = request.data.get('url')
-
-                if not isinstance(youtube_url, str) or not youtube_url:
-                    return Response({"error": "Valid URL is required"}, status=status.HTTP_400_BAD_REQUEST)
-                audio_s3_key, duration = self.download_from_youtube(youtube_url)
-                
-            elif 'file' in request.FILES:
-                uploaded_file = request.FILES['file']
-                if not hasattr(uploaded_file, 'file') or uploaded_file.size == 0:
-                    return Response({"error": "Valid file is required"}, status=status.HTTP_400_BAD_REQUEST)
-                audio_s3_key = self.upload_file_to_s3(uploaded_file)
-                duration = self.get_audio_duration_from_s3(audio_s3_key)
-            else:
-                return Response({"error": "No URL or file provided"}, status=status.HTTP_400_BAD_REQUEST)
-
             user_data = UserData.objects.filter(author_id=user_id).first()
             if not user_data:
                 return Response({"error": "UserData not found for the given user_id"}, status=status.HTTP_404_NOT_FOUND)
 
             current_time = user_data.time
-            if current_time <= 0:
-                return Response({"error": "Your time limit is over"}, status=status.HTTP_403_FORBIDDEN)
+            # if current_time <= 0:
+            #     return Response({"error": "Your time limit is over"}, status=status.HTTP_403_FORBIDDEN)
 
-            summary, new_time = self.transcribe_and_summarize(audio_s3_key, user_id, context, current_time, duration)
+            summary, new_time = self.transcribe_and_summarize(s3_file_key, user_id, context, current_time)
             return Response({
                 "status": "success",
                 "summary": summary,
                 "remaining_time": new_time
             })
-
         except Exception as e:
-            logger.error(f"An error occurred: {str(e)}", exc_info=True)
             return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def download_from_youtube(self, youtube_url):
-        if not isinstance(youtube_url, str):
-            raise ValueError("The provided URL is not a valid string")
-
-        def extract_video_id(url):
-            parsed_url = urlparse(url)
-            if parsed_url.netloc == 'youtu.be':
-                return parsed_url.path.strip('/')
-            elif parsed_url.netloc in ['www.youtube.com', 'youtube.com'] and 'watch' in parsed_url.path:
-                query_params = parse_qs(parsed_url.query)
-                return query_params.get('v', [None])[0]
-            elif parsed_url.netloc in ['www.youtube.com', 'youtube.com'] and 'embed' in parsed_url.path:
-                return parsed_url.path.split('/')[-1]
-            else:
-                return None
-
-        video_id = extract_video_id(youtube_url)
-        if video_id is None:
-            raise ValueError("No valid video ID found in the URL")
-
-        conn = http.client.HTTPSConnection("youtube-mp36.p.rapidapi.com")
-        headers = {
-            'x-rapidapi-key': settings.RAPIDAPI_KEY,
-            'x-rapidapi-host': settings.RAPIDAPI_HOST
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'outtmpl': '/tmp/%(title)s.%(ext)s', 
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }],
         }
 
-        retries = 5
-        backoff = 5
+        with YoutubeDL(ydl_opts) as ydl:
+            ydl.download([youtube_url])
 
-        for attempt in range(retries):
-            conn.request("GET", f"/dl?id={video_id}", headers=headers)
-            res = conn.getresponse()
-            data = res.read().decode("utf-8")
-            result = json.loads(data)
+        downloaded_files = [file for file in os.listdir('/tmp') if file.endswith('.mp3')]
+        if not downloaded_files:
+            raise FileNotFoundError("No MP3 files found after download.")
 
-            logger.debug(f"API response: {result}")
+        local_file_path = os.path.join('/tmp', downloaded_files[0])
+        s3_file_key = f'downloads/{downloaded_files[0]}'
 
-            if result['status'] == 'ok':
-                file_url = result.get('link')
-                duration = result.get('duration')
+        self.upload_to_s3(local_file_path, s3_file_key)
 
-                if not isinstance(file_url, str):
-                    raise ValueError("The file URL received is not a valid string")
+        os.remove(local_file_path)  # Clean up the local file after uploading
 
-                audio_s3_key = self.download_and_upload_from_youtube(file_url, result["title"])
-                return audio_s3_key, duration
+        return local_file_path, s3_file_key
 
-            elif result['status'] in ['in queue', 'in process']:
-                logger.info(f"API response indicates '{result['status']}'. Retrying...")
-                time.sleep(backoff)
-                backoff *= 2  # Exponential backoff
+    def save_uploaded_file_to_s3(self, uploaded_file):
+        s3_file_key = f'uploads/{uploaded_file.name}'
+        s3_client.upload_fileobj(uploaded_file, settings.AWS_STORAGE_BUCKET_NAME, s3_file_key)
+        return s3_file_key
 
-            else:
-                raise Exception(f"API error: {result['msg']}")
+    def upload_to_s3(self, file_path, s3_file_key):
+        s3_client.upload_file(file_path, settings.AWS_STORAGE_BUCKET_NAME, s3_file_key)
 
-        raise Exception("API processing time exceeded. Please try again later.")
-
-    def download_and_upload_from_youtube(self, file_url, title):
-        response = requests.get(file_url)
-        if response.status_code != 200:
-            raise Exception(f"Failed to download file: {response.status_code}")
-
-        s3_client = self.get_s3_client()
-        audio_s3_key = f'downloads/{title}.mp3'
-        s3_client.upload_fileobj(io.BytesIO(response.content), settings.AWS_STORAGE_BUCKET_NAME, audio_s3_key)
-        return audio_s3_key
-
-    def upload_file_to_s3(self, uploaded_file):
-        if not hasattr(uploaded_file, 'file') or uploaded_file.size == 0:
-            raise ValueError("The uploaded file is not valid")
-
-        s3_client = self.get_s3_client()
-        audio_s3_key = f'uploads/{uploaded_file.name}'
-        s3_client.upload_fileobj(uploaded_file, settings.AWS_STORAGE_BUCKET_NAME, audio_s3_key)
-        return audio_s3_key
-
-    def get_audio_duration_from_s3(self, s3_key):
-        if not isinstance(s3_key, str) or not s3_key:
-            raise ValueError("Invalid S3 key provided")
-
-        s3_client = self.get_s3_client()
-        s3_object = s3_client.get_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=s3_key)
-        audio_file = io.BytesIO(s3_object['Body'].read())
-        
-        # Load the file using pydub (it supports multiple formats, including MP3)
-        audio = AudioSegment.from_file(audio_file, format="mp3")
-
-        # Get duration in seconds
-        duration = len(audio) / 1000  # pydub reports duration in milliseconds
-        return duration
-
-    def transcribe_and_summarize(self, audio_s3_key, user_id, context, current_time, duration):
-        s3_client = self.get_s3_client()
-
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as temp_file:
-            s3_client.download_fileobj(settings.AWS_STORAGE_BUCKET_NAME, audio_s3_key, temp_file)
-            temp_file.flush()  # Ensure data is written to the file
-            
-            # Use the name of the temporary file for processing
-            audio_path = temp_file.name
+    def transcribe_and_summarize(self, s3_file_key, user_id, context, current_time):
+        # Download the file from S3 to a temporary local path for processing
+        local_file_path = f'/tmp/{os.path.basename(s3_file_key)}'
+        s3_client.download_file(settings.AWS_STORAGE_BUCKET_NAME, s3_file_key, local_file_path)
 
         transcriber = aai.Transcriber()
-        transcript = transcriber.transcribe(audio_path)
+        transcript = transcriber.transcribe(local_file_path)
 
-        params = {
-            'answer_format': "**<part of the lesson>**\n<list of important points in that part>",
-            'max_output_size': 4000
-        }
+        params = TRANSCRIPTION_PARAMS.copy()
         if context:
             params['context'] = context
-
+        
         summary = transcript.lemur.summarize(**params).response.strip().split('\n')
-        new_time = max(current_time - duration, 0)
 
+        audio_length = get_audio_length(local_file_path)
+
+        new_time = max(current_time - audio_length, 0)
         user_data = UserData.objects.filter(author_id=user_id).first()
         if user_data:
             user_data.time = new_time
             user_data.transcript = transcript
             user_data.save()
 
-        # Clean up
-        os.remove(audio_path)
+        os.remove(local_file_path)  # Clean up the local file after processing
+
         return summary, new_time
-
-    def get_s3_client(self):
-        return boto3.client(
-            's3',
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
-        )
-
-
 class AskQuestionView(APIView):
     permission_classes = [IsAuthenticated]
 
