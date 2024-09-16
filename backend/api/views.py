@@ -24,6 +24,7 @@ import time
 import io
 import tempfile 
 from urllib.parse import urlparse, parse_qs
+from pydub import AudioSegment
 
 # Set up AssemblyAI API key
 aai.settings.api_key = settings.API_KEY
@@ -101,7 +102,6 @@ class ConfirmEmailView(APIView):
         # Mark the token as confirmed
         confirmation_token.confirmed = True
         confirmation_token.save()
-        print(f"Confirmation: {confirmation_token.confirmed}")
 
 
         return Response({"message": "Email confirmed successfully"}, status=status.HTTP_200_OK)
@@ -141,9 +141,6 @@ class ResetPasswordView(APIView):
         token = request.data.get('token')
         new_password = request.data.get('password')
 
-        # Debugging: Print token to check its value
-        print(f"Received token: {token}")
-        print(f"Password token: {new_password}")
         if not token:
             return Response({"message": "Token is required"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -208,8 +205,7 @@ class DownloadAndTranscribeAPIView(APIView):
         try:
             if 'url' in request.data:
                 youtube_url = request.data.get('url')
-                print(context)
-                print(youtube_url)
+
                 if not isinstance(youtube_url, str) or not youtube_url:
                     return Response({"error": "Valid URL is required"}, status=status.HTTP_400_BAD_REQUEST)
                 audio_s3_key, duration = self.download_from_youtube(youtube_url)
@@ -249,18 +245,16 @@ class DownloadAndTranscribeAPIView(APIView):
         def extract_video_id(url):
             parsed_url = urlparse(url)
             if parsed_url.netloc == 'youtu.be':
-                # Shortened URL format
                 return parsed_url.path.strip('/')
-            elif parsed_url.netloc == 'www.youtube.com' and 'watch' in parsed_url.path:
-                # Standard URL format
+            elif parsed_url.netloc in ['www.youtube.com', 'youtube.com'] and 'watch' in parsed_url.path:
                 query_params = parse_qs(parsed_url.query)
                 return query_params.get('v', [None])[0]
+            elif parsed_url.netloc in ['www.youtube.com', 'youtube.com'] and 'embed' in parsed_url.path:
+                return parsed_url.path.split('/')[-1]
             else:
                 return None
 
-        # Extract video ID
         video_id = extract_video_id(youtube_url)
-
         if video_id is None:
             raise ValueError("No valid video ID found in the URL")
 
@@ -269,10 +263,6 @@ class DownloadAndTranscribeAPIView(APIView):
             'x-rapidapi-key': settings.RAPIDAPI_KEY,
             'x-rapidapi-host': settings.RAPIDAPI_HOST
         }
-
-        # Log headers to check if they are set correctly
-        logger.debug(f"Request headers: {headers}")
-        logger.debug(f"Extracted video ID: {video_id}")
 
         retries = 5
         backoff = 5
@@ -295,9 +285,8 @@ class DownloadAndTranscribeAPIView(APIView):
                 audio_s3_key = self.download_and_upload_from_youtube(file_url, result["title"])
                 return audio_s3_key, duration
 
-            elif result['status'] == 'in process':
-                # Retry logic with exponential backoff
-                logger.info("API response indicates 'in process'. Retrying...")
+            elif result['status'] in ['in queue', 'in process']:
+                logger.info(f"API response indicates '{result['status']}'. Retrying...")
                 time.sleep(backoff)
                 backoff *= 2  # Exponential backoff
 
@@ -332,8 +321,13 @@ class DownloadAndTranscribeAPIView(APIView):
         s3_client = self.get_s3_client()
         s3_object = s3_client.get_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=s3_key)
         audio_file = io.BytesIO(s3_object['Body'].read())
-        audio = MP3(audio_file)
-        return audio.info.length
+        
+        # Load the file using pydub (it supports multiple formats, including MP3)
+        audio = AudioSegment.from_file(audio_file, format="mp3")
+
+        # Get duration in seconds
+        duration = len(audio) / 1000  # pydub reports duration in milliseconds
+        return duration
 
     def transcribe_and_summarize(self, audio_s3_key, user_id, context, current_time, duration):
         s3_client = self.get_s3_client()

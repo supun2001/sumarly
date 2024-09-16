@@ -168,14 +168,14 @@ export default function Features() {
         // setOpenAlert(true);
       });
   };
-  console.log("Email "+userConfirmation)
 
   const isValidYouTubeUrl = (url) => {
-    const standardUrlPattern = /^https:\/\/www\.youtube\.com\/watch\?v=[a-zA-Z0-9_-]+$/;
-    const shortenedUrlPattern = /^https:\/\/youtu\.be\/[a-zA-Z0-9_-]+$/;
+    const standardUrlPattern = /^https:\/\/www\.youtube\.com\/watch\?v=[a-zA-Z0-9_-]+(&[a-zA-Z0-9_=-]*)*$/;
+    const shortenedUrlPattern = /^https:\/\/youtu\.be\/[a-zA-Z0-9_-]+(\?[a-zA-Z0-9_=-]*)*$/;
   
     return standardUrlPattern.test(url) || shortenedUrlPattern.test(url);
   };
+  
   
   const handleTranscribeSubmit = async (e) => {
     e.preventDefault();
@@ -185,20 +185,29 @@ export default function Features() {
       setAlertMessage("You need to log in to access this feature.");
       setAlertSeverity("warning");
       setOpenAlert(true);
-      // Delay the navigation by 2 seconds (2000 milliseconds)
       setTimeout(() => {
         navigate('/login');
       }, 2000);
-  
       return;
     }
   
-    // Validate YouTube URL
-    if (!isValidYouTubeUrl(youtubeUrl)) {
+    // Validate YouTube URL (if provided)
+    if (youtubeUrl && !isValidYouTubeUrl(youtubeUrl)) {
       setAlertMessage("Please provide a valid YouTube standard or shortened URL.");
       setAlertSeverity("error");
       setOpenAlert(true);
       return;
+    }
+  
+    // Validate file (if provided)
+    if (file) {
+      const validFileTypes = ['audio/mp3', 'audio/mpeg', 'video/mp4', 'video/quicktime'];
+      if (!validFileTypes.includes(file.type)) {
+        setAlertMessage("Please upload a valid MP3, MP4, or MOV file.");
+        setAlertSeverity("error");
+        setOpenAlert(true);
+        return;
+      }
     }
   
     setLoading(true);
@@ -237,6 +246,7 @@ export default function Features() {
       setFile(null);
     }
   };
+  
   
   const handleClose = () => {
     setOpenAlert(false);
