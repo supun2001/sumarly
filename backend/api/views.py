@@ -197,42 +197,31 @@ class UserDataDelete(generics.DestroyAPIView):
 
 class DownloadAndTranscribeAPIView(APIView):
     permission_classes = [AllowAny]
-    
+
     def post(self, request, *args, **kwargs):
         user = request.user
         user_id = user.id
         context = request.data.get('context', '')
 
-        # Handle YouTube URL input
-        if 'url' in request.data:
-            youtube_url = request.data.get('url')
-
-            if not youtube_url:
-                return Response({"error": "URL is required"}, status=status.HTTP_400_BAD_REQUEST)
-
-            try:
-                audio_path, s3_file_key = self.download_from_youtube(youtube_url)
-            except Exception as e:
-                return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        # Handle file upload input
-        elif 'file' in request.FILES:
-            uploaded_file = request.FILES['file']
-            s3_file_key = self.save_uploaded_file_to_s3(uploaded_file)
-            audio_path = uploaded_file.name  # This can be used for processing if needed
-        else:
-            return Response({"error": "No URL or file provided"}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Process transcription and summarization
         try:
+            if 'url' in request.data:
+                youtube_url = request.data.get('url')
+                if not youtube_url:
+                    return Response({"error": "URL is required"}, status=status.HTTP_400_BAD_REQUEST)
+                
+                audio_path, s3_file_key = self.download_from_youtube(youtube_url)
+            elif 'file' in request.FILES:
+                uploaded_file = request.FILES['file']
+                s3_file_key = self.save_uploaded_file_to_s3(uploaded_file)
+                audio_path = uploaded_file.name
+            else:
+                return Response({"error": "No URL or file provided"}, status=status.HTTP_400_BAD_REQUEST)
+
             user_data = UserData.objects.filter(author_id=user_id).first()
             if not user_data:
                 return Response({"error": "UserData not found for the given user_id"}, status=status.HTTP_404_NOT_FOUND)
 
             current_time = user_data.time
-            # if current_time <= 0:
-            #     return Response({"error": "Your time limit is over"}, status=status.HTTP_403_FORBIDDEN)
-
             summary, new_time = self.transcribe_and_summarize(s3_file_key, user_id, context, current_time)
             return Response({
                 "status": "success",
@@ -240,40 +229,56 @@ class DownloadAndTranscribeAPIView(APIView):
                 "remaining_time": new_time
             })
         except Exception as e:
+            logger.error(f"An error occurred: {str(e)}")
             return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def download_from_youtube(self, youtube_url):
-        # Define API endpoint and headers
         api_url = "https://youtube-to-mp315.p.rapidapi.com/download"
         headers = {
-            'x-rapidapi-key': settings.RAPIDAPI_KEY,  # Replace with your RapidAPI key
+            'x-rapidapi-key': settings.RAPIDAPI_KEY,
             'x-rapidapi-host': settings.RAPIDAPI_HOST,
             'Content-Type': "application/json"
         }
         querystring = {"url": youtube_url, "format": "mp3"}
 
-        # Send request to convert video
-        response = requests.post(api_url, headers=headers, params=querystring)
-        data = response.json()
-
-        # Polling until conversion is complete
-        while data.get('status') == 'CONVERTING':
-            time.sleep(30)  # Wait before polling again
-            response = requests.get(f"{api_url}/{data.get('id')}", headers=headers)
+        try:
+            # Request conversion
+            response = requests.post(api_url, headers=headers, params=querystring)
+            response.raise_for_status()  # Raises an HTTPError for bad responses
+            if response.status_code == 403:
+                raise Exception("Access forbidden. Check API key or permissions.")
+            
             data = response.json()
-        
-        if data.get('status') == 'AVAILABLE':
-            download_url = data.get('downloadUrl')
-            local_file_path = self.download_file(download_url)
-            s3_file_key = f'downloads/{os.path.basename(local_file_path)}'
-            self.upload_to_s3(local_file_path, s3_file_key)
-            os.remove(local_file_path)  # Clean up the local file after uploading
-            return local_file_path, s3_file_key
-        else:
-            raise Exception("Failed to convert video.")
+            resource_id = data.get('id')
+
+            # Check status of the conversion
+            status_url = f"https://youtube-to-mp315.p.rapidapi.com/status/{resource_id}"
+            while True:
+                response = requests.get(status_url, headers=headers)
+                if response.status_code == 404:
+                    raise Exception(f"Resource with ID {resource_id} not found.")
+                response.raise_for_status()  # Raises an HTTPError for bad responses
+
+                data = response.json()
+                if data.get('status') == 'AVAILABLE':
+                    download_url = data.get('downloadUrl')
+                    local_file_path = self.download_file(download_url)
+                    s3_file_key = f'downloads/{os.path.basename(local_file_path)}'
+                    self.upload_to_s3(local_file_path, s3_file_key)
+                    os.remove(local_file_path)
+                    return local_file_path, s3_file_key
+                elif data.get('status') == 'CONVERTING':
+                    time.sleep(30)  # Wait before checking again
+                else:
+                    raise Exception("Conversion failed or unknown status.")
+        except requests.RequestException as e:
+            logger.error(f"API request exception: {str(e)}")
+            raise
 
     def download_file(self, download_url):
         response = requests.get(download_url, stream=True)
+        if response.status_code != 200:
+            raise Exception(f"Download failed with status code {response.status_code}")
         local_file_path = f'/tmp/{os.path.basename(download_url)}'
         with open(local_file_path, 'wb') as file:
             for chunk in response.iter_content(chunk_size=8192):
@@ -290,7 +295,6 @@ class DownloadAndTranscribeAPIView(APIView):
         s3_client.upload_file(file_path, settings.AWS_STORAGE_BUCKET_NAME, s3_file_key)
 
     def transcribe_and_summarize(self, s3_file_key, user_id, context, current_time):
-        # Download the file from S3 to a temporary local path for processing
         local_file_path = f'/tmp/{os.path.basename(s3_file_key)}'
         s3_client.download_file(settings.AWS_STORAGE_BUCKET_NAME, s3_file_key, local_file_path)
 
@@ -312,9 +316,9 @@ class DownloadAndTranscribeAPIView(APIView):
             user_data.transcript = transcript
             user_data.save()
 
-        os.remove(local_file_path)  # Clean up the local file after processing
-
+        os.remove(local_file_path)
         return summary, new_time
+
 class AskQuestionView(APIView):
     permission_classes = [IsAuthenticated]
 
