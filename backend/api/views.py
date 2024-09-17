@@ -26,10 +26,6 @@ import tempfile
 from urllib.parse import urlparse, parse_qs
 from pydub import AudioSegment
 from yt_dlp import YoutubeDL
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 
 # Set up AssemblyAI API key
 aai.settings.api_key = settings.API_KEY
@@ -199,7 +195,6 @@ class UserDataDelete(generics.DestroyAPIView):
         user = self.request.user
         return UserData.objects.filter(author=user)
 
-
 class DownloadAndTranscribeAPIView(APIView):
     permission_classes = [AllowAny]
     
@@ -235,6 +230,9 @@ class DownloadAndTranscribeAPIView(APIView):
                 return Response({"error": "UserData not found for the given user_id"}, status=status.HTTP_404_NOT_FOUND)
 
             current_time = user_data.time
+            # if current_time <= 0:
+            #     return Response({"error": "Your time limit is over"}, status=status.HTTP_403_FORBIDDEN)
+
             summary, new_time = self.transcribe_and_summarize(s3_file_key, user_id, context, current_time)
             return Response({
                 "status": "success",
@@ -245,68 +243,43 @@ class DownloadAndTranscribeAPIView(APIView):
             return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def download_from_youtube(self, youtube_url):
-        # Step 1: Setup Selenium to login to YouTube and bypass CAPTCHA
-        chrome_options = Options()
-        chrome_options.add_argument('--headless')  # Run headless browser
-        chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--disable-dev-shm-usage')
-        driver = webdriver.Chrome(options=chrome_options)
-
-        # Open YouTube and login
-        driver.get("https://www.youtube.com")
-        
-        # Wait for YouTube to load
-        time.sleep(3)
-
-        # Here, you can add Selenium code to log in (you can manually log in during testing)
-        # Find login fields and log into YouTube (assumes YouTube requires login)
-        login_button = driver.find_element(By.XPATH, '//*[text()="Sign in"]')
-        login_button.click()
-
-        # Fill in your login information manually or automate the process
-        # You may also need to handle the CAPTCHA manually here
-
-        # Wait for manual CAPTCHA solving (if necessary) and successful login
-        time.sleep(30)  # Adjust as needed
-
-        # After login, extract cookies to pass into yt-dlp
-        cookies = driver.get_cookies()
-        cookie_file = '/tmp/cookies.txt'
-        
-        with open(cookie_file, 'w') as f:
-            for cookie in cookies:
-                f.write(f"{cookie['name']}={cookie['value']}; ")
-
-        # Step 2: Download video using yt-dlp with cookies
-        ydl_opts = {
-            'format': 'bestaudio/best',
-            'outtmpl': '/tmp/%(title)s.%(ext)s', 
-            'postprocessors': [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '192',
-            }],
-            'cookiefile': cookie_file  # Pass cookies from Selenium
+        # Define API endpoint and headers
+        api_url = "https://youtube-to-mp315.p.rapidapi.com/download"
+        headers = {
+            'x-rapidapi-key': settings.RAPIDAPI_KEY,  # Replace with your RapidAPI key
+            'x-rapidapi-host': settings.RAPIDAPI_HOST,
+            'Content-Type': "application/json"
         }
+        querystring = {"url": youtube_url, "format": "mp3"}
 
-        with YoutubeDL(ydl_opts) as ydl:
-            ydl.download([youtube_url])
+        # Send request to convert video
+        response = requests.post(api_url, headers=headers, params=querystring)
+        data = response.json()
 
-        downloaded_files = [file for file in os.listdir('/tmp') if file.endswith('.mp3')]
-        if not downloaded_files:
-            raise FileNotFoundError("No MP3 files found after download.")
+        # Polling until conversion is complete
+        while data.get('status') == 'CONVERTING':
+            time.sleep(30)  # Wait before polling again
+            response = requests.get(f"{api_url}/{data.get('id')}", headers=headers)
+            data = response.json()
+        
+        if data.get('status') == 'AVAILABLE':
+            download_url = data.get('downloadUrl')
+            local_file_path = self.download_file(download_url)
+            s3_file_key = f'downloads/{os.path.basename(local_file_path)}'
+            self.upload_to_s3(local_file_path, s3_file_key)
+            os.remove(local_file_path)  # Clean up the local file after uploading
+            return local_file_path, s3_file_key
+        else:
+            raise Exception("Failed to convert video.")
 
-        local_file_path = os.path.join('/tmp', downloaded_files[0])
-        s3_file_key = f'downloads/{downloaded_files[0]}'
-
-        # Upload the file to S3
-        self.upload_to_s3(local_file_path, s3_file_key)
-
-        # Clean up temporary files
-        os.remove(local_file_path)
-        driver.quit()  # Close the Selenium browser instance
-
-        return local_file_path, s3_file_key
+    def download_file(self, download_url):
+        response = requests.get(download_url, stream=True)
+        local_file_path = f'/tmp/{os.path.basename(download_url)}'
+        with open(local_file_path, 'wb') as file:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    file.write(chunk)
+        return local_file_path
 
     def save_uploaded_file_to_s3(self, uploaded_file):
         s3_file_key = f'uploads/{uploaded_file.name}'
@@ -342,7 +315,6 @@ class DownloadAndTranscribeAPIView(APIView):
         os.remove(local_file_path)  # Clean up the local file after processing
 
         return summary, new_time
-
 class AskQuestionView(APIView):
     permission_classes = [IsAuthenticated]
 
