@@ -19,21 +19,7 @@ export default function LogoutMenu({ email }) {
     const [notes, setNotes] = useState({});
     const [logoutConfirmed, setLogoutConfirmed] = useState(false);
     const navigate = useNavigate();
-
-    const handleClickOpen = () => {
-        setOpen(true);
-    };
-
-    const handleClose = () => {
-        setOpen(false);
-    };
-
-    const handleConfirmLogout = () => {
-        localStorage.clear();
-        setLogoutConfirmed(true);
-        setOpen(false);
-    };
-
+    
     useEffect(() => {
         getNotes();
         if (logoutConfirmed) {
@@ -48,10 +34,15 @@ export default function LogoutMenu({ email }) {
                 return res.data;
             })
             .then((data) => {
-                // If data is an array, you might need to handle it differently
-                setNotes(data[0] || {});  // Example: set the first item or an empty object
+                setNotes(data[0] || {}); 
             })
-            .catch((err) => alert(err));
+            .catch((err) => {
+                if (err.response && err.response.status === 401) {
+                    navigate('/logout');
+                } else {
+                    alert("An error occurred: " + err.message);
+                }
+            });
     };
 
     return (
@@ -68,33 +59,12 @@ export default function LogoutMenu({ email }) {
                     </MenuItem>
                     <MenuItem>
                         <Typography variant="body1" color="text.primary">
-                            Time : {notes.time}
+                            Time : {notes.time} seconds
                         </Typography>
                     </MenuItem>
                 </Menu>
             </Dropdown>
 
-            <Dialog
-                open={open}
-                onClose={handleClose}
-                aria-labelledby="alert-dialog-title"
-                aria-describedby="alert-dialog-description"
-            >
-                <DialogTitle id="alert-dialog-title">
-                    {"Log out"}
-                </DialogTitle>
-                <DialogContent>
-                    <DialogContentText id="alert-dialog-description">
-                        Are you sure you want to log out?
-                    </DialogContentText>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleClose}>Cancel</Button>
-                    <Button onClick={handleConfirmLogout} autoFocus>
-                        Log out
-                    </Button>
-                </DialogActions>
-            </Dialog>
         </>
     );
 }

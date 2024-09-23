@@ -101,18 +101,24 @@ export default function Features() {
   useEffect(() => {
     const fetchEmailConfirmation = async () => {
       try {
-        const res = await api.get("/api/notes/");
-        const notes = res.data;
-        if (Array.isArray(notes)) {
-          if (notes.length > 0) {
-            setUserConfirmation(notes[0].confirmed);
+        const email = localStorage.getItem("email"); // Check if email exists in localStorage
+  
+        if (email) {
+          // If email exists, proceed with fetching notes
+          const res = await api.get("/api/notes/");
+          const notes = res.data;
+  
+          if (Array.isArray(notes)) {
+            if (notes.length > 0) {
+              setUserConfirmation(notes[0].confirmed);
+            } else {
+              setUserConfirmation(false);
+            }
           } else {
-            setUserConfirmation(false);
+            setAlertMessage("Please confirm your email");
+            setAlertSeverity("error");
+            setOpenAlert(true);
           }
-        } else {
-          setAlertMessage("Please confirm your email");
-          setAlertSeverity("error");
-          setOpenAlert(true);
         }
       } catch (error) {
         setAlertMessage("Error fetching data: " + (error.response?.data?.message || error.message));
@@ -120,12 +126,14 @@ export default function Features() {
         setOpenAlert(true);
       }
     };
-
+  
     fetchEmailConfirmation();
+  
     if (loginConfirmed) {
-      navigate('/login'); // Navigate to login after logout
+      navigate('/login');
     }
   }, [loginConfirmed, navigate]);
+  
 
   React.useEffect(() => {
     const storedEmail = localStorage.getItem('email');
@@ -235,7 +243,13 @@ export default function Features() {
         setAlertMessage("Your time limit is over. Please try again next month or upgrade the package.");
         setAlertSeverity("warning");
         setOpenAlert(true);
-      } else {
+      } else if (err.response?.status === 401) {
+        setAlertMessage("Please re-login to your account");
+        setAlertSeverity("warning");
+        setOpenAlert(true);
+        navigate("/logout");
+      } 
+      else {
         setError('Please try again later!');
         setResult(null);
       }

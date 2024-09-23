@@ -196,7 +196,7 @@ class UserDataDelete(generics.DestroyAPIView):
         return UserData.objects.filter(author=user)
 
 class DownloadAndTranscribeAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
         user = request.user
