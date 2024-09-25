@@ -268,7 +268,7 @@ class DownloadAndTranscribeAPIView(APIView):
                     os.remove(local_file_path)
                     return local_file_path, s3_file_key
                 elif data.get('status') == 'CONVERTING':
-                    time.sleep(30)  # Wait before checking again
+                    time.sleep(15)  # Wait before checking again
                 else:
                     raise Exception("Conversion failed or unknown status.")
         except requests.RequestException as e:
