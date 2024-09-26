@@ -249,22 +249,31 @@ class DownloadAndTranscribeAPIView(APIView):
                 raise Exception("Access forbidden. Check API key or permissions.")
             
             data = response.json()
-            download_url = data.get('downloadUrl')
+            resource_id = data.get('id')
 
-            # Proceed to download the file if the download URL is available
-            if download_url:
-                local_file_path = self.download_file(download_url)
-                s3_file_key = f'downloads/{os.path.basename(local_file_path)}'
-                self.upload_to_s3(local_file_path, s3_file_key)
-                os.remove(local_file_path)
-                return local_file_path, s3_file_key
-            else:
-                raise Exception("Download URL not available.")
-                
+            # Check status of the conversion
+            status_url = f"https://youtube-to-mp315.p.rapidapi.com/status/{resource_id}"
+            while True:
+                response = requests.get(status_url, headers=headers)
+                if response.status_code == 404:
+                    raise Exception(f"Resource with ID {resource_id} not found.")
+                response.raise_for_status()  # Raises an HTTPError for bad responses
+
+                data = response.json()
+                if data.get('status') == 'AVAILABLE':
+                    download_url = data.get('downloadUrl')
+                    local_file_path = self.download_file(download_url)
+                    s3_file_key = f'downloads/{os.path.basename(local_file_path)}'
+                    self.upload_to_s3(local_file_path, s3_file_key)
+                    os.remove(local_file_path)
+                    return local_file_path, s3_file_key
+                elif data.get('status') == 'CONVERTING':
+                    time.sleep(5)  # Wait before checking again
+                else:
+                    raise Exception("Conversion failed or unknown status.")
         except requests.RequestException as e:
             logger.error(f"API request exception: {str(e)}")
             raise
-
 
     def download_file(self, download_url):
         response = requests.get(download_url, stream=True)
