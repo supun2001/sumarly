@@ -233,53 +233,53 @@ class DownloadAndTranscribeAPIView(APIView):
             return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def download_from_youtube(self, youtube_url):
-        api_url = "https://youtube-to-mp315.p.rapidapi.com/download"
+        conn = http.client.HTTPSConnection("yt-search-and-download-mp3.p.rapidapi.com")
+        
         headers = {
             'x-rapidapi-key': settings.RAPIDAPI_KEY,
             'x-rapidapi-host': settings.RAPIDAPI_HOST,
-            'Content-Type': "application/json"
         }
-        querystring = {"url": youtube_url, "format": "mp3"}
+        
+        # URL encode the YouTube URL for the API request
+        encoded_url = youtube_url.replace(":", "%3A").replace("/", "%2F")
+        request_url = f"/mp3?url={encoded_url}"
 
         try:
-            # Request conversion
-            response = requests.post(api_url, headers=headers, params=querystring)
-            response.raise_for_status()  # Raises an HTTPError for bad responses
-            if response.status_code == 403:
-                raise Exception("Access forbidden. Check API key or permissions.")
+            # Send the API request
+            conn.request("GET", request_url, headers=headers)
+            res = conn.getresponse()
+            data = res.read()
             
-            data = response.json()
-            resource_id = data.get('id')
+            # Parse the response JSON
+            response_data = json.loads(data.decode("utf-8"))
+            
+            # Check the success field in the response
+            if response_data.get("success"):
+                download_url = response_data.get("download")
+                local_file_path = self.download_file(download_url)
+                s3_file_key = f'downloads/{os.path.basename(local_file_path)}'
+                self.upload_to_s3(local_file_path, s3_file_key)
+                os.remove(local_file_path)
+                return local_file_path, s3_file_key
+            else:
+                raise Exception("API returned failure. Could not download the file.")
 
-            # Check status of the conversion
-            status_url = f"https://youtube-to-mp315.p.rapidapi.com/status/{resource_id}"
-            while True:
-                response = requests.get(status_url, headers=headers)
-                if response.status_code == 404:
-                    raise Exception(f"Resource with ID {resource_id} not found.")
-                response.raise_for_status()  # Raises an HTTPError for bad responses
-
-                data = response.json()
-                if data.get('status') == 'AVAILABLE':
-                    download_url = data.get('downloadUrl')
-                    local_file_path = self.download_file(download_url)
-                    s3_file_key = f'downloads/{os.path.basename(local_file_path)}'
-                    self.upload_to_s3(local_file_path, s3_file_key)
-                    os.remove(local_file_path)
-                    return local_file_path, s3_file_key
-                elif data.get('status') == 'CONVERTING':
-                    time.sleep(5)  # Wait before checking again
-                else:
-                    raise Exception("Conversion failed or unknown status.")
-        except requests.RequestException as e:
-            logger.error(f"API request exception: {str(e)}")
+        except http.client.HTTPException as e:
+            logger.error(f"HTTP error occurred: {str(e)}")
+            raise
+        except Exception as e:
+            logger.error(f"An error occurred: {str(e)}")
             raise
 
     def download_file(self, download_url):
         response = requests.get(download_url, stream=True)
         if response.status_code != 200:
             raise Exception(f"Download failed with status code {response.status_code}")
-        local_file_path = f'/tmp/{os.path.basename(download_url)}'
+
+        # Generate a hashed file name for storage to avoid long file name issues
+        file_name_hash = hashlib.md5(download_url.encode()).hexdigest()
+        local_file_path = f'/tmp/{file_name_hash}.mp3'
+
         with open(local_file_path, 'wb') as file:
             for chunk in response.iter_content(chunk_size=8192):
                 if chunk:
