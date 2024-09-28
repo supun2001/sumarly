@@ -133,7 +133,34 @@ class RequestPasswordResetView(APIView):
         send_mail(subject, message, from_email, [user.username])
 
         return Response({"message": "Password reset email sent"}, status=status.HTTP_200_OK)
-    
+
+class ContactUsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        email = request.data.get('email')
+        title = request.data.get('title')
+        organization = request.data.get('organization')
+        user_message = request.data.get('message')
+
+        user = get_object_or_404(User, username=request.user.username)
+
+        subject = "New Contact Us Message"
+        message = (
+            f"From: {user.username} ({email})\n"
+            f"Title: {title}\n"
+            f"Organization: {organization}\n"
+            f"Message: {user_message}"
+        )
+        from_email = settings.DEFAULT_FROM_EMAIL
+        recipient_email = 'hanzstudio.contact@gmail.com'
+
+        try:
+            # Send the email
+            send_mail(subject, message, from_email, [recipient_email], fail_silently=False)
+            return Response({"message": "Your message has been sent successfully."}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class ResetPasswordView(APIView):
     permission_classes = [AllowAny]

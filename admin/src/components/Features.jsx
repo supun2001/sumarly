@@ -248,10 +248,6 @@ export default function Features() {
         setAlertSeverity("warning");
         setOpenAlert(true);
         navigate("/logout");
-      } else if (err.response?.status === 503) {
-        setAlertMessage("Please can you download the youtube video and upload the sumarly");
-        setAlertSeverity("warning");
-        setOpenAlert(true);
       } 
       else {
         setError('Please try again later!');

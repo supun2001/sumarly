@@ -7,22 +7,25 @@ import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
 import Container from '@mui/material/Container';
 import Divider from '@mui/material/Divider';
-import Grid from '@mui/material/Grid2';
+import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
+import api from "../api";
 import { useNavigate } from 'react-router-dom';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
+import OutlinedInput from '@mui/material/OutlinedInput';
+import CircularProgress from '@mui/material/CircularProgress'; // Import CircularProgress
 
 const tiers = [
   {
     title: 'Free',
     price: '0',
-    description: [
-      '60 Minutes per Month',
-      'Perfect for Light Users',
-      'Access Mobile App',
-      '24/7 support',
-    ],
+    description: ['15 Minutes per Month', 'Perfect for Light Users', 'Access Mobile App', '24/7 support'],
     buttonText: 'Sign up for free',
     buttonVariant: 'outlined',
     buttonColor: 'primary',
@@ -31,14 +34,7 @@ const tiers = [
     title: 'Professional',
     subheader: 'Recommended',
     price: '15',
-    description: [
-      '1000 Minutes per Month',
-      'Best for Regular Users',
-      'Download PDF',
-      'Priority email support',
-      'Best deals',
-      '24/7 support',
-    ],
+    description: ['1000 Minutes per Month', 'Best for Regular Users', 'Download PDF', 'Priority email support', 'Best deals', '24/7 support'],
     buttonText: 'Start now',
     buttonVariant: 'contained',
     buttonColor: 'secondary',
@@ -46,13 +42,7 @@ const tiers = [
   {
     title: 'Enterprise',
     price: '30',
-    description: [
-      'Custom Solutions & Unlimited Minutes',
-      'Tailored for Organisations',
-      'Help center access',
-      'Phone & email support',
-      '50% off',
-    ],
+    description: ['Custom Solutions & Unlimited Minutes', 'Tailored for Organisations', 'Help center access', 'Phone & email support', '50% off'],
     buttonText: 'Contact us',
     buttonVariant: 'outlined',
     buttonColor: 'primary',
@@ -62,10 +52,19 @@ const tiers = [
 export default function Pricing() {
   const navigate = useNavigate();
   const [email, setEmail] = React.useState(false);
+  const [open, setOpen] = React.useState(false);
+  const [loading, setLoading] = React.useState(false); // State for loading
+  const [formData, setFormData] = React.useState({
+    email: '',
+    message: '',
+    title: '',
+    organization: '',
+  });
+  const [responseMessage, setResponseMessage] = React.useState(''); // State for API response message
 
   const getEmail = () => {
     const storedEmail = localStorage.getItem('email');
-    setEmail(!!storedEmail);  // Converts to true if storedEmail exists, false otherwise
+    setEmail(!!storedEmail);
   };
 
   React.useEffect(() => {
@@ -74,18 +73,44 @@ export default function Pricing() {
 
   const handleButtonClick = (tierTitle) => {
     if (tierTitle === 'Free') {
-      if(email){
-        window.location.reload(); 
-      }else{
+      if (email) {
+        window.location.reload();
+      } else {
         navigate('/login');
       }
     } else if (tierTitle === 'Professional') {
       navigate('/buy');
     } else if (tierTitle === 'Enterprise') {
-      navigate('/contact');
+      setOpen(true); // Open dialog when "Contact us" is clicked
     }
   };
 
+  const handleClose = () => {
+    setOpen(false);
+    setResponseMessage(''); // Reset response message when dialog is closed
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
+  const setContactUs = async () => {
+    setLoading(true); // Start loading
+    try {
+      const res = await api.post("/api/contact_us/", formData);
+      setResponseMessage('Email was sent successfully! We will contact you in 2-3 business days.'); // Set success message
+    } catch (error) {
+      setResponseMessage('Failed to send email. Please try again.'); // Set error message
+    } finally {
+      setLoading(false); // Stop loading
+    }
+  };
+
+  const handleSubmit = () => {
+    // Call the API to send the email
+    setContactUs();
+  };
 
   return (
     <Container
@@ -100,92 +125,19 @@ export default function Pricing() {
         gap: { xs: 3, sm: 6 },
       }}
     >
-      <Box
-        sx={{
-          width: { sm: '100%', md: '60%' },
-          textAlign: { sm: 'left', md: 'center' },
-        }}
-      >
-        <Typography
-          component="h2"
-          variant="h4"
-          gutterBottom
-          sx={{ color: 'text.primary' }}
-        >
-          Pricing
-        </Typography>
-        <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-          Quickly build an effective pricing table for your potential customers with
-          this layout. <br />
-          It&apos;s built with default Material UI components with little
-          customization.
-        </Typography>
-      </Box>
-      <Grid
-        container
-        spacing={3}
-        sx={{ alignItems: 'center', justifyContent: 'center', width: '100%' }}
-      >
+      {/* Pricing content */}
+      <Grid container spacing={3} sx={{ alignItems: 'center', justifyContent: 'center', width: '100%' }}>
         {tiers.map((tier) => (
-          <Grid
-            size={{ xs: 12, sm: tier.title === 'Enterprise' ? 12 : 6, md: 4 }}
-            key={tier.title}
-          >
-            <Card
-              sx={[
-                {
-                  p: 2,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 4,
-                },
-                tier.title === 'Professional' &&
-                  ((theme) => ({
-                    border: 'none',
-                    background:
-                      'radial-gradient(circle at 50% 0%, hsl(220, 20%, 35%), hsl(220, 30%, 6%))',
-                    boxShadow: `0 8px 12px hsla(220, 20%, 42%, 0.2)`,
-                    ...theme.applyStyles('dark', {
-                      background:
-                        'radial-gradient(circle at 50% 0%, hsl(220, 20%, 20%), hsl(220, 30%, 16%))',
-                      boxShadow: `0 8px 12px hsla(0, 0%, 0%, 0.8)`,
-                    }),
-                  })),
-              ]}
-            >
+          <Grid key={tier.title} item xs={12} sm={tier.title === 'Enterprise' ? 12 : 6} md={4}>
+            <Card sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 4 }}>
               <CardContent>
-                <Box
-                  sx={[
-                    {
-                      mb: 1,
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: 2,
-                    },
-                    tier.title === 'Professional'
-                      ? { color: 'grey.100' }
-                      : { color: '' },
-                  ]}
-                >
+                <Box sx={{ mb: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
                   <Typography component="h3" variant="h6">
                     {tier.title}
                   </Typography>
-                  {tier.title === 'Professional' && (
-                    <Chip icon={<AutoAwesomeIcon />} label={tier.subheader} />
-                  )}
+                  {tier.title === 'Professional' && <Chip icon={<AutoAwesomeIcon />} label={tier.subheader} />}
                 </Box>
-                <Box
-                  sx={[
-                    {
-                      display: 'flex',
-                      alignItems: 'baseline',
-                    },
-                    tier.title === 'Professional'
-                      ? { color: 'grey.50' }
-                      : { color: null },
-                  ]}
-                >
+                <Box sx={{ display: 'flex', alignItems: 'baseline' }}>
                   <Typography component="h3" variant="h2">
                     ${tier.price}
                   </Typography>
@@ -195,41 +147,16 @@ export default function Pricing() {
                 </Box>
                 <Divider sx={{ my: 2, opacity: 0.8, borderColor: 'divider' }} />
                 {tier.description.map((line) => (
-                  <Box
-                    key={line}
-                    sx={{ py: 1, display: 'flex', gap: 1.5, alignItems: 'center' }}
-                  >
-                    <CheckCircleRoundedIcon
-                      sx={[
-                        {
-                          width: 20,
-                        },
-                        tier.title === 'Professional'
-                          ? { color: 'primary.light' }
-                          : { color: 'primary.main' },
-                      ]}
-                    />
-                    <Typography
-                      variant="subtitle2"
-                      component={'span'}
-                      sx={[
-                        tier.title === 'Professional'
-                          ? { color: 'grey.50' }
-                          : { color: null },
-                      ]}
-                    >
+                  <Box key={line} sx={{ py: 1, display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                    <CheckCircleRoundedIcon sx={{ width: 20, color: 'primary.main' }} />
+                    <Typography variant="subtitle2" component="span">
                       {line}
                     </Typography>
                   </Box>
                 ))}
               </CardContent>
               <CardActions>
-                <Button
-                  fullWidth
-                  variant={tier.buttonVariant}
-                  color={tier.buttonColor}
-                  onClick={() => handleButtonClick(tier.title)}
-                >
+                <Button fullWidth variant={tier.buttonVariant} color={tier.buttonColor} onClick={() => handleButtonClick(tier.title)}>
                   {tier.buttonText}
                 </Button>
               </CardActions>
@@ -237,6 +164,80 @@ export default function Pricing() {
           </Grid>
         ))}
       </Grid>
+
+      {/* Dialog for "Contact Us" */}
+      <Dialog open={open} onClose={handleClose}>
+        <DialogTitle>Contact Us</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            Please enter your contact details, and we will get back to you as soon as possible.
+          </DialogContentText>
+
+          <OutlinedInput
+            autoFocus
+            required
+            margin="dense"
+            label="Email Address"
+            placeholder="Email address"
+            type="email"
+            fullWidth
+            name="email"
+            value={formData.email}
+            onChange={handleInputChange}
+            sx={{ mb: 2 }}
+          />
+          <OutlinedInput
+            required
+            margin="dense"
+            label="Title"
+            placeholder="Title"
+            fullWidth
+            name="title"
+            value={formData.title}
+            onChange={handleInputChange}
+            sx={{ mb: 2 }}
+          />
+          <OutlinedInput
+            required
+            margin="dense"
+            label="Organization"
+            placeholder="Organization"
+            fullWidth
+            name="organization"
+            value={formData.organization}
+            onChange={handleInputChange}
+            sx={{ mb: 2 }}
+          />
+          <OutlinedInput
+            required
+            margin="dense"
+            label="Message"
+            placeholder="Message"
+            fullWidth
+            multiline
+            rows={4}
+            name="message"
+            value={formData.message}
+            onChange={handleInputChange}
+            sx={{ mb: 2 }}
+          />
+          {loading && <CircularProgress />} 
+          {responseMessage && (
+            <Typography
+              variant="h6" // Change to a larger variant
+              color={responseMessage.includes('successfully') ? 'white' : 'red'}
+              sx={{ textAlign: 'center', mt: 2, fontWeight: 'bold' }} // Optional: make it bold for emphasis
+            >
+              {responseMessage}
+            </Typography>
+          )}
+
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose}>Cancel</Button>
+          <Button onClick={handleSubmit} disabled={loading}>Submit</Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }

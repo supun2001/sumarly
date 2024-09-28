@@ -10,5 +10,6 @@ urlpatterns = [
     path('confirm-email/<uuid:token>/', views.ConfirmEmailView.as_view(), name='confirm_email'),
     path('request_password_reset/', views.RequestPasswordResetView.as_view(), name='request_password_reset'),
     path('reset_password/', views.ResetPasswordView.as_view(), name='reset_password'),
+    path('contact_us/', views.ContactUsView.as_view(), name='contact_us'),
 ]
 
