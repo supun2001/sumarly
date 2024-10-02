@@ -24,7 +24,7 @@ import CircularProgress from '@mui/material/CircularProgress'; // Import Circula
 const tiers = [
   {
     title: 'Free',
-    price: '0',
+    price: '$0',
     description: ['15 Minutes per Month', 'Perfect for Light Users', 'Access Mobile App', '24/7 support'],
     buttonText: 'Sign up for free',
     buttonVariant: 'outlined',
@@ -33,7 +33,7 @@ const tiers = [
   {
     title: 'Professional',
     subheader: 'Recommended',
-    price: '15',
+    price: '$15',
     description: ['1000 Minutes per Month', 'Best for Regular Users', 'Download PDF', 'Priority email support', 'Best deals', '24/7 support'],
     buttonText: 'Start now',
     buttonVariant: 'contained',
@@ -41,7 +41,7 @@ const tiers = [
   },
   {
     title: 'Enterprise',
-    price: '30',
+    price: 'Custom',
     description: ['Custom Solutions & Unlimited Minutes', 'Tailored for Organisations', 'Help center access', 'Phone & email support', '50% off'],
     buttonText: 'Contact us',
     buttonVariant: 'outlined',
@@ -139,7 +139,7 @@ export default function Pricing() {
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'baseline' }}>
                   <Typography component="h3" variant="h2">
-                    ${tier.price}
+                    {tier.price}
                   </Typography>
                   <Typography component="h3" variant="h6">
                     &nbsp; per month

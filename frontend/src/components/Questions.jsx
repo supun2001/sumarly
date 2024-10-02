@@ -9,9 +9,20 @@ export default function Questions({ transcript, userConfirmation }) {
     const messagesEndRef = useRef(null);
 
     const handleSendMessage = async () => {
+
+
+
         if (message.trim()) {
             setMessages([...messages, { text: message, sender: 'user' }]);
             setMessage('');
+
+            if (!userConfirmation) {
+                setMessages(prevMessages => [
+                    ...prevMessages,
+                    { text: 'You are not logged in. Please log in to continue.', sender: 'bot' },
+                ]);
+                return;
+            }
 
             // Add a "typing" indicator
             setMessages(prevMessages => [
@@ -99,8 +110,7 @@ export default function Questions({ transcript, userConfirmation }) {
                     Submit a YouTube link or file to receive a concise summary. Plus, ask any questions about your audio clip to get detailed answers and insights.
                 </Typography>
             </Box>
-            {userConfirmation ? (
-                <>
+            <>
                     {/* Messages Display */}
                     <Box 
                         flexGrow={1} 
@@ -155,13 +165,6 @@ export default function Questions({ transcript, userConfirmation }) {
                         </IconButton>
                     </Box>
                 </>
-            ) : (
-                <Box sx={{ textAlign: 'center', width: '100%' }}>
-                    <Typography variant="h5" component="h5" sx={{ mb: 2 }}>
-                        Please verify your email
-                    </Typography>
-                </Box>
-            )}
         </Box>
     );
 }

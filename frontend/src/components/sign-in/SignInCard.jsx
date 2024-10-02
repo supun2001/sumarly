@@ -12,16 +12,16 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import { useState } from "react";
 import { styled } from '@mui/material/styles';
+import Checkbox from '@mui/material/Checkbox';
+import FormControlLabel from '@mui/material/FormControlLabel';
 
 import ForgotPassword from './ForgotPassword';
 import { SitemarkIcon } from './CustomIcons';
-
 import api from "../../api";
 import { useNavigate } from "react-router-dom";
 import { ACCESS_TOKEN, REFRESH_TOKEN } from "../../constants";
 
-// Define EMAIL as a constant
-const EMAIL = 'email';  // You can use any string here as the key name
+const EMAIL = 'email';  // Define EMAIL as a constant
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: 'flex',
@@ -35,10 +35,6 @@ const Card = styled(MuiCard)(({ theme }) => ({
   [theme.breakpoints.up('sm')]: {
     width: '450px',
   },
-  ...theme.applyStyles('dark', {
-    boxShadow:
-      'hsla(220, 30%, 5%, 0.5) 0px 5px 15px 0px, hsla(220, 25%, 10%, 0.08) 0px 15px 35px -5px',
-  }),
 }));
 
 export default function SignInCard({ route, method }) {
@@ -55,6 +51,8 @@ export default function SignInCard({ route, method }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState(""); // New state for confirm password
   const [loading, setLoading] = useState(false);
+  const [checkedPolicies, setCheckedPolicies] = useState(false); // State for checkbox
+  const [policyError, setPolicyError] = useState(false);
   const navigate = useNavigate();
 
   const name = method === "login" ? "Login" : "Register";
@@ -67,10 +65,17 @@ export default function SignInCard({ route, method }) {
     setOpen(false);
   };
 
-  
+  const handleCheckboxChange = (event) => {
+    setCheckedPolicies(event.target.checked);
+    setPolicyError(false); // Reset error when checkbox is clicked
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (!checkedPolicies) {
+      setPolicyError(true);
+      return; // Prevent submission if checkbox is not checked
+    }
     if (!validateInputs()) return;
     setLoading(true);
     try {
@@ -79,7 +84,6 @@ export default function SignInCard({ route, method }) {
         localStorage.setItem(ACCESS_TOKEN, res.data.access);
         localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
         localStorage.setItem(EMAIL, username);
-
         navigate("/");
       } else {
         setDialogOpen(true); // Open the dialog on successful registration
@@ -117,7 +121,7 @@ export default function SignInCard({ route, method }) {
       setEmailErrorMessage('');
     }
 
-    if (!password || password.length < 2) {
+    if (!password || password.length < 6) {
       setPasswordError(true);
       setPasswordErrorMessage('Password must be at least 6 characters long.');
       isValid = false;
@@ -204,26 +208,58 @@ export default function SignInCard({ route, method }) {
             sx={{ ariaLabel: 'password' }}
           />
         </FormControl>
-        {method === "register" && (
-          <FormControl>
-            <Typography>Confirm Password</Typography>
-            <TextField
-              error={confirmPasswordError}
-              helperText={confirmPasswordErrorMessage}
-              name="confirmPassword"
-              placeholder="••••••"
-              type="password"
-              id="confirmPassword"
-              autoComplete="new-password"
-              required
-              fullWidth
-              variant="outlined"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              sx={{ ariaLabel: 'confirm-password' }}
-            />
-          </FormControl>
+
+                {method === "register" && (
+          <>
+            <FormControl>
+              <Typography>Confirm Password</Typography>
+              <TextField
+                error={confirmPasswordError}
+                helperText={confirmPasswordErrorMessage}
+                name="confirmPassword"
+                placeholder="••••••"
+                type="password"
+                id="confirmPassword"
+                autoComplete="new-password"
+                required
+                fullWidth
+                variant="outlined"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                sx={{ ariaLabel: 'confirm-password' }}
+              />
+            </FormControl>
+
+            {/* Checkbox for policies */}
+            <FormControl error={policyError}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={checkedPolicies}
+                    onChange={handleCheckboxChange}
+                    name="policies"
+                    required
+                  />
+                }
+                label={
+                  <Typography>
+                    I agree to the{' '}
+                    <Link href="/policy" target="_blank">
+                      Terms and Conditions
+                    </Link>,{' '}
+                    <Link href="/policy" target="_blank">
+                      Privacy Policy
+                    </Link>, and{' '}
+                    <Link href="/policy" target="_blank">
+                      Return Policy
+                    </Link>.
+                  </Typography>
+                }
+              />
+            </FormControl>
+          </>
         )}
+
 
         <ForgotPassword open={open} handleClose={handleClose} />
         <Button type="submit" fullWidth variant="contained" disabled={loading}>
@@ -244,27 +280,20 @@ export default function SignInCard({ route, method }) {
           ) : (
             <>
               Already have an account?{' '}
-              <Link
-                href="/login"
-                variant="body2"
-                sx={{ alignSelf: 'center' }}
-              >
-                Log in
+              <Link href="/login" variant="body2">
+                Sign in
               </Link>
             </>
           )}
         </Typography>
       </Box>
-      
-      {/* Dialog Component */}
-      <Dialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-      >
-        <DialogTitle>Registration Successful</DialogTitle>
+
+      {/* Dialog for registration confirmation */}
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
+        <DialogTitle>Registration Successful!</DialogTitle>
         <DialogContent>
           <Typography>
-            Please check your email and verify your account.
+            Please check your email to verify your account.
           </Typography>
         </DialogContent>
         <DialogActions>

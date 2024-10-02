@@ -9,6 +9,7 @@ import ConfirmEmail from "./components/ConfirmMail"
 import Buy from "./components/Buy"
 import RestPassword from "./components/sign-in/RestPassword"
 import UserSettings from "./components/userSettings"
+import PoliciesPage from "./components/Policy"
 
 function Logout() {
   localStorage.clear()
@@ -39,6 +40,7 @@ function App() {
           <Route path="/register" element={<RegisterAndLogout />} />
           <Route path="/confirm_email" element={<ConfirmEmail />} />
           <Route path="/reset_password" element={<RestPassword />} />
+          <Route path="/policy" element={<PoliciesPage />} />
           <Route path="/buy" element={
             <ProtectedRoute>
               <Buy />

@@ -3,38 +3,39 @@ import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
-import AutoFixHighRoundedIcon from '@mui/icons-material/AutoFixHighRounded';
-import ConstructionRoundedIcon from '@mui/icons-material/ConstructionRounded';
-import SettingsSuggestRoundedIcon from '@mui/icons-material/SettingsSuggestRounded';
-import ThumbUpAltRoundedIcon from '@mui/icons-material/ThumbUpAltRounded';
+import SummarizeIcon from '@mui/icons-material/Summarize';
+import CloudSyncIcon from '@mui/icons-material/CloudSync';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import ShutterSpeedIcon from '@mui/icons-material/ShutterSpeed';
 
 import sumarlylogoDark from "../../assets/sumarly logo dark.png";
 import sumarlylogoLigh from "../../assets/sumarly logo light.png";
 
+
 const items = [
   {
-    icon: <SettingsSuggestRoundedIcon sx={{ color: 'text.secondary' }} />,
-    title: 'Adaptable performance',
+    icon: <SummarizeIcon sx={{ color: 'text.secondary' }} />,
+    title: 'Instant Summaries',
     description:
-      'Our product effortlessly adjusts to your needs, boosting efficiency and simplifying your tasks.',
+      'Generate concise and accurate summaries in seconds, helping you save time and focus on what matters.',
   },
   {
-    icon: <ConstructionRoundedIcon sx={{ color: 'text.secondary' }} />,
-    title: 'Built to last',
+    icon: <AccessTimeIcon sx={{ color: 'text.secondary' }} />,
+    title: 'Time-Saving',
     description:
-      'Experience unmatched durability that goes above and beyond with lasting investment.',
+      'Process lengthy lectures or content in minutes, giving you more time to concentrate on deeper learning.',
   },
   {
-    icon: <ThumbUpAltRoundedIcon sx={{ color: 'text.secondary' }} />,
-    title: 'Great user experience',
+    icon: <CloudSyncIcon sx={{ color: 'text.secondary' }} />,
+    title: 'Seamless Integration',
     description:
-      'Integrate our product into your routine with an intuitive and easy-to-use interface.',
+      'Sync effortlessly with your favorite platforms, allowing easy access to summarizations wherever you are.',
   },
   {
-    icon: <AutoFixHighRoundedIcon sx={{ color: 'text.secondary' }} />,
-    title: 'Innovative functionality',
+    icon: <ShutterSpeedIcon sx={{ color: 'text.secondary' }} />,
+    title: 'Fast and Efficient',
     description:
-      'Stay ahead with features that set new standards, addressing your evolving needs better than the rest.',
+      'Designed for speed, our app ensures you get fast results without compromising on quality.',
   },
 ];
 
