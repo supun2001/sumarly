@@ -5,6 +5,7 @@ import Login from "./pages/Login."
 import Register from "./pages/Register"
 import RestPassword from "./components/sign-in/RestPassword"
 import ProtectedRoute from "../../frontend/src/components/ProtectedRoute"
+import Users from "./pages/Users"
 
 
 function Logout() {
@@ -35,7 +36,9 @@ function App() {
               <Home />
             </ProtectedRoute>
           } />
+          
         </Routes>
+        
       </BrowserRouter>
     </>
   )

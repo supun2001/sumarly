@@ -1,5 +1,4 @@
-import * as React from 'react';
-
+import React, { useState } from 'react';
 import { alpha } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
@@ -15,6 +14,10 @@ import {
   datePickersCustomizations,
   treeViewCustomizations,
 } from '../theme/customizations';
+import Users from './Users';
+import Sales from './Sales';
+import Feedbacks from './Feedbacks';
+import Errors from './Errors';
 
 const xThemeComponents = {
   ...chartsCustomizations,
@@ -23,12 +26,28 @@ const xThemeComponents = {
   ...treeViewCustomizations,
 };
 
+// Create a mapping of page components
+const componentsMap = {
+  home: <MainGrid />, // Home page content
+  users: <Users />, // Placeholder for Users component
+  sales: <Sales />, // Placeholder for Sales component
+  feedbacks: <Feedbacks />, // Placeholder for Feedbacks component
+  errors: <Errors />, // Placeholder for Errors component
+};
+
 export default function Dashboard(props) {
+  const [currentPage, setCurrentPage] = useState('home'); // Initialize state
+
+  // Function to handle page changes
+  const handleMenuClick = (page) => {
+    setCurrentPage(page); // Update the current page
+  };
+
   return (
     <AppTheme {...props} themeComponents={xThemeComponents}>
       <CssBaseline enableColorScheme />
       <Box sx={{ display: 'flex' }}>
-        <SideMenu />
+        <SideMenu onMenuClick={handleMenuClick} /> {/* Pass the handler to SideMenu */}
         <AppNavbar />
         <Box
           component="main"
@@ -50,7 +69,7 @@ export default function Dashboard(props) {
             }}
           >
             <Header />
-            <MainGrid />
+            {componentsMap[currentPage]} {/* Render the current page content */}
           </Stack>
         </Box>
       </Box>

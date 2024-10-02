@@ -8,12 +8,38 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import NotificationsRoundedIcon from '@mui/icons-material/NotificationsRounded';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 import MenuButton from './MenuButton';
 import MenuContent from './MenuContent';
 import CardAlert from './CardAlert';
 
 function SideMenuMobile({ open, toggleDrawer }) {
+  // State to hold user email and access level
+  const [userEmail, setUserEmail] = React.useState('');
+  const [userAccessLevel, setUserAccessLevel] = React.useState('');
+
+  // Fetch email and access level from local storage when component mounts
+  React.useEffect(() => {
+    const email = localStorage.getItem('email'); // Change 'email' to your actual local storage key
+    const access_level = localStorage.getItem('access_level');
+    if (email) {
+      setUserEmail(email);
+    }
+    if (access_level) {
+      setUserAccessLevel(access_level);
+    }
+  }, []);
+
+  const navigate = useNavigate(); // Initialize useNavigate
+
+  const handleLogout = () => {
+    // Here you can also clear user data from local storage if needed
+    localStorage.removeItem('email'); // Example: Remove email from local storage
+    localStorage.removeItem('access_level'); // Example: Remove access level from local storage
+    navigate('/logout'); // Navigate to the logout page
+  };
+
   return (
     <Drawer
       anchor="right"
@@ -39,12 +65,21 @@ function SideMenuMobile({ open, toggleDrawer }) {
           >
             <Avatar
               sizes="small"
-              alt="Riley Carter"
+              alt={userEmail} // Dynamic alt text
               src="/static/images/avatar/7.jpg"
               sx={{ width: 24, height: 24 }}
             />
-            <Typography component="p" variant="h6">
-              Riley Carter
+            <Typography component="p" variant="h6"
+                          sx={{
+                            fontWeight: 500,
+                            lineHeight: '16px',
+                            overflow: 'hidden',      // Prevent overflow
+                            textOverflow: 'ellipsis', // Show ellipsis for long text
+                            whiteSpace: 'nowrap',     // Prevent text from wrapping to the next line
+                            maxWidth: '100px',        // Set a max width to limit the space it occupies
+                          }}
+            >
+              {userEmail} {/* Show email or fallback to default name */}
             </Typography>
           </Stack>
           <MenuButton showBadge>
@@ -56,9 +91,11 @@ function SideMenuMobile({ open, toggleDrawer }) {
           <MenuContent />
           <Divider />
         </Stack>
-        <CardAlert />
         <Stack sx={{ p: 2 }}>
-          <Button variant="outlined" fullWidth startIcon={<LogoutRoundedIcon />}>
+          <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: 'center' }}>
+            {userAccessLevel} {/* Display access level */}
+          </Typography>
+          <Button variant="outlined" fullWidth startIcon={<LogoutRoundedIcon />} onClick={handleLogout}>
             Logout
           </Button>
         </Stack>
