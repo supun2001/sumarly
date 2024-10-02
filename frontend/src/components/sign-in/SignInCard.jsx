@@ -72,35 +72,23 @@ export default function SignInCard({ route, method }) {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    
-    // Only check policies if method is 'register'
-    if (method === "register" && !checkedPolicies) {
+    if (method == 'Register' && !checkedPolicies) {
       setPolicyError(true);
       return; // Prevent submission if checkbox is not checked
     }
-  
-    if (!validateInputs()) {
-      return;
-    }
-  
+    if (!validateInputs()) return;
     setLoading(true);
     try {
-      console.log("Sending request...");
       const res = await api.post(route, { username, password });
-      console.log("Response received:", res);
-      
       if (method === "login") {
-        // Successful login handling
         localStorage.setItem(ACCESS_TOKEN, res.data.access);
         localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
         localStorage.setItem(EMAIL, username);
         navigate("/");
       } else {
-        // Successful registration handling
         setDialogOpen(true); // Open the dialog on successful registration
       }
     } catch (error) {
-      console.error("Error occurred:", error);
       if (error.response) {
         if (error.response.status === 401) {
           setEmailError(true);
@@ -120,12 +108,9 @@ export default function SignInCard({ route, method }) {
       setLoading(false);
     }
   };
-  
-  
 
   const validateInputs = () => {
     let isValid = true;
-    console.log(isValid);
 
     if (!username || !/\S+@\S+\.\S+/.test(username)) {
       setEmailError(true);
@@ -224,7 +209,7 @@ export default function SignInCard({ route, method }) {
           />
         </FormControl>
 
-        {method === "register" && (
+                {method === "register" && (
           <>
             <FormControl>
               <Typography>Confirm Password</Typography>
