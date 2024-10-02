@@ -73,9 +73,7 @@ export default function SignInCard({ route, method }) {
     setLoading(true);
   
     try {
-      const route = method === "login" ? 'api/admin_login/' : 'api/admin_reg/';
       const requestBody = { email, password };
-  
       const res = await api.post(route, requestBody);
   
       console.log('Response:', res); 

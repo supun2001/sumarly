@@ -21,7 +21,7 @@ import http.client
 import json
 import requests
 from urllib.parse import urlparse, parse_qs
-
+from rest_framework_simplejwt.tokens import RefreshToken
 
 # Set up AssemblyAI API key
 aai.settings.api_key = settings.API_KEY
@@ -397,6 +397,9 @@ class AdminLoginView(generics.GenericAPIView):
         
         # Get the validated admin object from the serializer
         admin = serializer.validated_data['admin']
+
+        # Create JWT token
+        refresh = RefreshToken.for_user(admin)
         
         return Response({
             "message": "Admin login successful",
@@ -405,9 +408,11 @@ class AdminLoginView(generics.GenericAPIView):
             "email": admin.email,
             "access_level": admin.access_level,
             "created_at": admin.created_at,
-            "last_login": admin.last_login
+            "last_login": admin.last_login,
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
         })
-    
+
 class AdminRegistrationView(generics.CreateAPIView):
     queryset = Admin.objects.all()
     serializer_class = AdminSerializer

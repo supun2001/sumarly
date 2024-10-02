@@ -16,7 +16,6 @@ import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
 import ForgotPassword from './ForgotPassword';
-import { SitemarkIcon } from './CustomIcons';
 import api from "../../api";
 import { useNavigate } from "react-router-dom";
 import { ACCESS_TOKEN, REFRESH_TOKEN } from "../../constants";
@@ -144,9 +143,7 @@ export default function SignInCard({ route, method }) {
 
   return (
     <Card variant="outlined">
-      <Box sx={{ display: { xs: 'flex', md: 'none' } }}>
-        <SitemarkIcon />
-      </Box>
+
       <Typography
         component="h1"
         variant="h4"
