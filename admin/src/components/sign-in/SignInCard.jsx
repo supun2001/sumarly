@@ -67,37 +67,33 @@ export default function SignInCard({ route, method }) {
     setOpen(false);
   };
 
-  
-
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!validateInputs()) return;
     setLoading(true);
 
     try {
-        // Set the API route based on the method (login or register)
-        const route = method === "login" ? 'api/admin_login/' : 'api/admin_reg/'; 
-
-        // Prepare the request body
+        const route = method === "login" ? 'api/admin_login/' : 'api/admin_reg/';
         const requestBody = method === "login" ? { username, password } : { email: username, password };
 
         const res = await api.post(route, requestBody);
+        
+        console.log("Login response:", res.data); // Log the response
 
         if (method === "login") {
-            // On successful login, store relevant data in local storage
             localStorage.setItem(ACCESS_TOKEN, res.data.access);
             localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
-            localStorage.setItem(EMAIL, res.data.email);  // Use username as email
-            localStorage.setItem('access_level', res.data.access_level); // Store access level
-            localStorage.setItem('accepted', res.data.accepted); // Store acceptance status
-            localStorage.setItem('created_at', res.data.created_at); // Store creation date
-            localStorage.setItem('last_login', res.data.last_login); // Store last login date
+            localStorage.setItem(EMAIL, res.data.email);
+            localStorage.setItem('access_level', res.data.access_level);
+            localStorage.setItem('accepted', res.data.accepted);
+            localStorage.setItem('created_at', res.data.created_at);
+            localStorage.setItem('last_login', res.data.last_login);
             navigate("/");
         } else {
-            // Open the dialog on successful registration
             setDialogOpen(true);
         }
     } catch (error) {
+        console.error("Login error:", error); // Log the full error
         if (error.response) {
             if (error.response.status === 401) {
                 setEmailError(true);
@@ -117,6 +113,7 @@ export default function SignInCard({ route, method }) {
         setLoading(false);
     }
 };
+
 
 
   const validateInputs = () => {
@@ -269,7 +266,7 @@ export default function SignInCard({ route, method }) {
           )}
         </Typography>
       </Box>
-      
+
       {/* Dialog Component */}
       <Dialog
         open={dialogOpen}

@@ -71,21 +71,15 @@ export default function SignInCard({ route, method }) {
   };
 
   const handleSubmit = async (event) => {
-    console.log("Submit button clicked");
     event.preventDefault();
-    
-    console.log("Method:", method);
-    console.log("Checked Policies:", checkedPolicies);
     
     // Only check policies if method is 'register'
     if (method === "register" && !checkedPolicies) {
       setPolicyError(true);
-      console.log("Policy not accepted");
       return; // Prevent submission if checkbox is not checked
     }
   
     if (!validateInputs()) {
-      console.log("Validation failed");
       return;
     }
   
