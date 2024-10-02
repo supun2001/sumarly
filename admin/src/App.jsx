@@ -4,6 +4,7 @@ import Home from "./pages/Home"
 import Login from "./pages/Login."
 import Register from "./pages/Register"
 import RestPassword from "./components/sign-in/RestPassword"
+import ProtectedRoute from "../../frontend/src/components/ProtectedRoute"
 
 
 function Logout() {
@@ -24,16 +25,16 @@ function App() {
     <>
       <BrowserRouter>
         <Routes>
-          <Route
-            path="/"
-            element={
-                <Home />
-            }
-          />
+
           <Route path="/login" element={<Login />} />
           <Route path="/logout" element={<Logout />} />
           <Route path="/register" element={<RegisterAndLogout />} />
           <Route path="/reset_password" element={<RestPassword />} />
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          } />
         </Routes>
       </BrowserRouter>
     </>

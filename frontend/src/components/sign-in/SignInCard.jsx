@@ -71,24 +71,42 @@ export default function SignInCard({ route, method }) {
   };
 
   const handleSubmit = async (event) => {
+    console.log("Submit button clicked");
     event.preventDefault();
-    if (!checkedPolicies) {
+    
+    console.log("Method:", method);
+    console.log("Checked Policies:", checkedPolicies);
+    
+    // Only check policies if method is 'register'
+    if (method === "register" && !checkedPolicies) {
       setPolicyError(true);
+      console.log("Policy not accepted");
       return; // Prevent submission if checkbox is not checked
     }
-    if (!validateInputs()) return;
+  
+    if (!validateInputs()) {
+      console.log("Validation failed");
+      return;
+    }
+  
     setLoading(true);
     try {
+      console.log("Sending request...");
       const res = await api.post(route, { username, password });
+      console.log("Response received:", res);
+      
       if (method === "login") {
+        // Successful login handling
         localStorage.setItem(ACCESS_TOKEN, res.data.access);
         localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
         localStorage.setItem(EMAIL, username);
         navigate("/");
       } else {
+        // Successful registration handling
         setDialogOpen(true); // Open the dialog on successful registration
       }
     } catch (error) {
+      console.error("Error occurred:", error);
       if (error.response) {
         if (error.response.status === 401) {
           setEmailError(true);
@@ -108,9 +126,12 @@ export default function SignInCard({ route, method }) {
       setLoading(false);
     }
   };
+  
+  
 
   const validateInputs = () => {
     let isValid = true;
+    console.log(isValid);
 
     if (!username || !/\S+@\S+\.\S+/.test(username)) {
       setEmailError(true);
@@ -121,7 +142,7 @@ export default function SignInCard({ route, method }) {
       setEmailErrorMessage('');
     }
 
-    if (!password || password.length < 6) {
+    if (!password || password.length < 2) {
       setPasswordError(true);
       setPasswordErrorMessage('Password must be at least 6 characters long.');
       isValid = false;
@@ -209,7 +230,7 @@ export default function SignInCard({ route, method }) {
           />
         </FormControl>
 
-                {method === "register" && (
+        {method === "register" && (
           <>
             <FormControl>
               <Typography>Confirm Password</Typography>

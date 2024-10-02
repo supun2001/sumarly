@@ -17,3 +17,14 @@ class UserData(models.Model):
     def __str__(self):
         return str(self.time)
     
+class Admin(models.Model):
+    email = models.EmailField(unique=True)  
+    password = models.CharField(max_length=128)  
+    access_level = models.CharField(default="Super Admin",max_length=50)  # For example, "Super Admin", "Moderator"
+    accepted = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)  # When the admin was created
+    last_login = models.DateTimeField(null=True, blank=True)  # Last login timestamp
+
+    def __str__(self):
+        return f"Admin: {self.username} ({self.access_level})"
+    

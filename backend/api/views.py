@@ -7,8 +7,8 @@ from rest_framework import status, generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from .models import User, UserData
-from .serializer import UserSerializer, UserDataSerializer
+from .models import User, UserData, Admin
+from .serializer import UserSerializer, UserDataSerializer, AdminSerializer, AdminLoginSerializer
 import os
 import hashlib
 import assemblyai as aai
@@ -20,12 +20,8 @@ import uuid
 import http.client
 import json
 import requests
-import time
-import io
-import tempfile 
 from urllib.parse import urlparse, parse_qs
-from pydub import AudioSegment
-from yt_dlp import YoutubeDL
+
 
 # Set up AssemblyAI API key
 aai.settings.api_key = settings.API_KEY
@@ -385,3 +381,52 @@ class AskQuestionView(APIView):
 
         except Exception as e:
             return Response({'error': f'An error occurred: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+# ------------------------ Admin ------------------------
+
+
+class AdminLoginView(generics.GenericAPIView):
+    serializer_class = AdminLoginSerializer
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        # Validate and get the serializer data
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        # Get the validated admin object from the serializer
+        admin = serializer.validated_data['admin']
+        
+        return Response({
+            "message": "Admin login successful",
+            "admin_id": admin.id,
+            "accepted": admin.accepted,
+            "email": admin.email,
+            "access_level": admin.access_level,
+            "created_at": admin.created_at,
+            "last_login": admin.last_login
+        })
+    
+class AdminRegistrationView(generics.CreateAPIView):
+    queryset = Admin.objects.all()
+    serializer_class = AdminSerializer
+    permission_classes = [AllowAny] 
+
+    def create(self, request, *args, **kwargs):
+        # Get the data from the request
+        data = request.data
+        # Hash the password
+        data['password'] = make_password(data['password'])  # Hash the password
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        admin = serializer.save()
+        return Response({
+            "message": "Admin registered successfully",
+            "admin_id": admin.id,
+            "accepted" : admin.accepted,
+            "email": admin.email,
+            "access_level": admin.access_level,
+            "created_at" : admin.created_at,
+            "last_login" : admin.last_login
+        })

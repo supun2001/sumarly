@@ -73,37 +73,51 @@ export default function SignInCard({ route, method }) {
     event.preventDefault();
     if (!validateInputs()) return;
     setLoading(true);
-    try {
-      const res = await api.post(route, { username, password });
-      if (method === "login") {
-        localStorage.setItem(ACCESS_TOKEN, res.data.access);
-        localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
-        localStorage.setItem(EMAIL, username);
 
-        navigate("/");
-      } else {
-        setDialogOpen(true); // Open the dialog on successful registration
-      }
-    } catch (error) {
-      if (error.response) {
-        if (error.response.status === 401) {
-          setEmailError(true);
-          setEmailErrorMessage("Email or password incorrect");
-        } else if (error.response.status === 400) {
-          setEmailError(true);
-          setEmailErrorMessage("Email already registered");
+    try {
+        // Set the API route based on the method (login or register)
+        const route = method === "login" ? 'api/admin_login/' : 'api/admin_reg/'; 
+
+        // Prepare the request body
+        const requestBody = method === "login" ? { username, password } : { email: username, password };
+
+        const res = await api.post(route, requestBody);
+
+        if (method === "login") {
+            // On successful login, store relevant data in local storage
+            localStorage.setItem(ACCESS_TOKEN, res.data.access);
+            localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
+            localStorage.setItem(EMAIL, res.data.email);  // Use username as email
+            localStorage.setItem('access_level', res.data.access_level); // Store access level
+            localStorage.setItem('accepted', res.data.accepted); // Store acceptance status
+            localStorage.setItem('created_at', res.data.created_at); // Store creation date
+            localStorage.setItem('last_login', res.data.last_login); // Store last login date
+            navigate("/");
         } else {
-          setEmailError(true);
-          setEmailErrorMessage("An unexpected error occurred");
+            // Open the dialog on successful registration
+            setDialogOpen(true);
         }
-      } else {
-        setEmailError(true);
-        setEmailErrorMessage("Network error, please try again later");
-      }
+    } catch (error) {
+        if (error.response) {
+            if (error.response.status === 401) {
+                setEmailError(true);
+                setEmailErrorMessage("Email or password incorrect");
+            } else if (error.response.status === 400) {
+                setEmailError(true);
+                setEmailErrorMessage("Email already registered");
+            } else {
+                setEmailError(true);
+                setEmailErrorMessage("An unexpected error occurred");
+            }
+        } else {
+            setEmailError(true);
+            setEmailErrorMessage("Network error, please try again later");
+        }
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  };
+};
+
 
   const validateInputs = () => {
     let isValid = true;

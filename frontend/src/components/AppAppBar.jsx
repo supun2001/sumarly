@@ -54,11 +54,11 @@ export default function AppAppBar({ mode, toggleColorMode }) {
   }, []);
 
   const handleSignInClick = () => {
-    navigate('/login');
+    navigate('/register');
   };
 
   const handleSignUpClick = () => {
-    navigate('/register');
+    navigate('/login');
   };
 
   const handleLogout = () => {
