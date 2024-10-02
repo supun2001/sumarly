@@ -12,6 +12,7 @@ class UserData(models.Model):
     token = models.UUIDField(default=uuid.uuid4, editable=False)  # Unique token for email confirmation
     token_created_at = models.DateTimeField(default=timezone.now)  # When the token was created
     confirmed = models.BooleanField(default=False) 
+    paid = models.BooleanField(default=False)
 
     def __str__(self):
         return str(self.time)
