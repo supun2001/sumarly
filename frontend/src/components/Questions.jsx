@@ -9,9 +9,6 @@ export default function Questions({ transcript, userConfirmation }) {
     const messagesEndRef = useRef(null);
 
     const handleSendMessage = async () => {
-
-
-
         if (message.trim()) {
             setMessages([...messages, { text: message, sender: 'user' }]);
             setMessage('');
@@ -27,7 +24,7 @@ export default function Questions({ transcript, userConfirmation }) {
             // Add a "typing" indicator
             setMessages(prevMessages => [
                 ...prevMessages,
-                { text: 'typing...', sender: 'bot', isTyping: false },
+                { text: 'typing...', sender: 'bot', isTyping: true },
             ]);
 
             if (transcript) {
@@ -82,6 +79,13 @@ export default function Questions({ transcript, userConfirmation }) {
         scrollToBottom();
     }, [messages]);
 
+    const handleKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault(); // Prevent form submission or page refresh on "Enter"
+            handleSendMessage(); // Send the message
+        }
+    };
+
     return (
         <Box 
             display="flex" 
@@ -94,7 +98,7 @@ export default function Questions({ transcript, userConfirmation }) {
             mb={0}
             padding={0}
         >
-            <Box sx={{ width: { sm: '100%'} }}>
+            <Box sx={{ width: { sm: '100%' } }}>
                 <Typography
                     component="h2"
                     variant="h4"
@@ -111,60 +115,60 @@ export default function Questions({ transcript, userConfirmation }) {
                 </Typography>
             </Box>
             <>
-                    {/* Messages Display */}
-                    <Box 
-                        flexGrow={1} 
-                        overflow="auto" 
-                        mb={2}
-                        display="flex"
-                        flexDirection="column"
-                    >
-                        {messages.map((msg, index) => (
-                            <Box 
-                                key={index} 
-                                display="flex" 
-                                justifyContent={msg.sender === 'user' ? 'flex-end' : 'flex-start'}
-                                mb={1}
-                            >
-                                <Typography 
-                                    variant="body1" 
-                                    bgcolor={msg.sender === 'user' ? 'primary.main' : 'grey.300'}
-                                    color={msg.sender === 'user' ? 'white' : 'black'}
-                                    p={1}
-                                    borderRadius="10px"
-                                    maxWidth="80%"
-                                    sx={{ wordWrap: 'break-word' }} // Correct property name
-                                    dangerouslySetInnerHTML={{ __html: msg.text }} // Render HTML content
-                                />
-                                {/* Show CircularProgress if it's a typing indicator */}
-                                {msg.isTyping && (
-                                    <CircularProgress size={20} sx={{ ml: 1, alignSelf: 'center' }} />
-                                )}
-                            </Box>
-                        ))}
-
-                        <div ref={messagesEndRef} />
-                    </Box>
-
-                    {/* Input Field */}
-                    <Box display="flex" alignItems="center">
-                        <TextField
-                            variant="outlined"
-                            fullWidth
-                            value={message}
-                            onChange={(e) => setMessage(e.target.value)}
-                            placeholder="Type your message..."
-                            onKeyPress={(e) => e.key === 'Enter' ? handleSendMessage() : null}
-                        />
-                        <IconButton 
-                            color="primary" 
-                            onClick={handleSendMessage} 
-                            sx={{ ml: 1 }}
+                {/* Messages Display */}
+                <Box 
+                    flexGrow={1} 
+                    overflow="auto" 
+                    mb={2}
+                    display="flex"
+                    flexDirection="column"
+                >
+                    {messages.map((msg, index) => (
+                        <Box 
+                            key={index} 
+                            display="flex" 
+                            justifyContent={msg.sender === 'user' ? 'flex-end' : 'flex-start'}
+                            mb={1}
                         >
-                            <SendIcon />
-                        </IconButton>
-                    </Box>
-                </>
+                            <Typography 
+                                variant="body1" 
+                                bgcolor={msg.sender === 'user' ? 'primary.main' : 'grey.300'}
+                                color={msg.sender === 'user' ? 'white' : 'black'}
+                                p={1}
+                                borderRadius="10px"
+                                maxWidth="80%"
+                                sx={{ wordWrap: 'break-word' }} // Correct property name
+                                dangerouslySetInnerHTML={{ __html: msg.text }} // Render HTML content
+                            />
+                            {/* Show CircularProgress if it's a typing indicator */}
+                            {msg.isTyping && (
+                                <CircularProgress size={20} sx={{ ml: 1, alignSelf: 'center' }} />
+                            )}
+                        </Box>
+                    ))}
+
+                    <div ref={messagesEndRef} />
+                </Box>
+
+                {/* Input Field */}
+                <Box display="flex" alignItems="center">
+                    <TextField
+                        variant="outlined"
+                        fullWidth
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        placeholder="Type your message..."
+                        onKeyPress={handleKeyPress} // Handle "Enter" key press
+                    />
+                    <IconButton 
+                        color="primary" 
+                        onClick={handleSendMessage} 
+                        sx={{ ml: 1 }}
+                    >
+                        <SendIcon />
+                    </IconButton>
+                </Box>
+            </>
         </Box>
     );
 }
