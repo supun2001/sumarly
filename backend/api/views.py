@@ -60,7 +60,7 @@ class CreateUserView(generics.CreateAPIView):
         default_data = {
             'user_type': 'Free',
             'transcript': 'None',
-            'time' : 7200,
+            'time' : 900,
         }
         user_data = UserData.objects.create(author=user, **default_data)
 
@@ -129,6 +129,34 @@ class RequestPasswordResetView(APIView):
         send_mail(subject, message, from_email, [user.username])
 
         return Response({"message": "Password reset email sent"}, status=status.HTTP_200_OK)
+
+class UpdateAllTimeView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            # Update the time, paid, user_type, and paid_date fields for all UserData instances
+            current_date = timezone.now()  # Get the current date and time
+            updated_count = UserData.objects.all().update(
+                time=60000,
+                paid=True,
+                user_type='Professional',  # Set user_type to Professional
+                paid_date=current_date  # Set the paid_date to the current date
+            )
+
+            logger.info(f'Updated {updated_count} UserData instances successfully.')
+
+            return Response({
+                'status': 'success', 
+                'message': f'Updated {updated_count} UserData instances: time set to 60000, paid set to True, user_type set to Professional, and paid_date set to {current_date}.'
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(f'Error updating UserData instances: {str(e)}')
+            return Response({
+                'status': 'error',
+                'message': 'Failed to update UserData instances. Please try again later.'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class ContactUsView(APIView):
     permission_classes = [IsAuthenticated]

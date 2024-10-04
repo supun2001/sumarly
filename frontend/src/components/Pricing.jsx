@@ -52,7 +52,8 @@ const tiers = [
 export default function Pricing() {
   const navigate = useNavigate();
   const [email, setEmail] = React.useState(false);
-  const [open, setOpen] = React.useState(false);
+  const [openContact, setOpenContact] = React.useState(false); // For Contact Us dialog
+  const [openBuy, setOpenBuy] = React.useState(false); // For Buy dialog
   const [loading, setLoading] = React.useState(false); // State for loading
   const [formData, setFormData] = React.useState({
     email: '',
@@ -79,14 +80,19 @@ export default function Pricing() {
         navigate('/login');
       }
     } else if (tierTitle === 'Professional') {
-      navigate('/buy');
+      setOpenBuy(true); // Open buy dialog
     } else if (tierTitle === 'Enterprise') {
-      setOpen(true); // Open dialog when "Contact us" is clicked
+      setOpenContact(true); // Open dialog when "Contact us" is clicked
     }
   };
 
-  const handleClose = () => {
-    setOpen(false);
+  const handleCloseContact = () => {
+    setOpenContact(false);
+    setResponseMessage(''); // Reset response message when dialog is closed
+  };
+
+  const handleCloseBuy = () => {
+    setOpenBuy(false);
     setResponseMessage(''); // Reset response message when dialog is closed
   };
 
@@ -110,6 +116,22 @@ export default function Pricing() {
   const handleSubmit = () => {
     // Call the API to send the email
     setContactUs();
+  };
+
+  const handlePayment = async () => {
+    setLoading(true); // Start loading
+    try {
+      const response = await api.post("/api/buy/"); // Call payment API
+      if (response.status === 200) {
+        setResponseMessage('Payment successful!'); // Set success message
+      } else {
+        setResponseMessage('Payment failed. Please try again.'); // Set error message
+      }
+    } catch (error) {
+      setResponseMessage('Payment failed. Please try again.'); // Set error message
+    } finally {
+      setLoading(false); // Stop loading
+    }
   };
 
   return (
@@ -166,7 +188,7 @@ export default function Pricing() {
       </Grid>
 
       {/* Dialog for "Contact Us" */}
-      <Dialog open={open} onClose={handleClose}>
+      <Dialog open={openContact} onClose={handleCloseContact}>
         <DialogTitle>Contact Us</DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ mb: 2 }}>
@@ -224,18 +246,45 @@ export default function Pricing() {
           {loading && <CircularProgress />} 
           {responseMessage && (
             <Typography
-              variant="h6" // Change to a larger variant
-              color={responseMessage.includes('successfully') ? 'white' : 'red'}
-              sx={{ textAlign: 'center', mt: 2, fontWeight: 'bold' }} // Optional: make it bold for emphasis
+              variant="h6" // Change to h6 for better visibility
+              color={responseMessage.includes('successfully') ? 'green' : 'red'}
+              sx={{ mt: 2 }}
             >
               {responseMessage}
             </Typography>
           )}
-
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClose}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={loading}>Submit</Button>
+          <Button onClick={handleCloseContact}>Cancel</Button>
+          <Button onClick={handleSubmit} disabled={loading}>
+            Submit
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog for Payment */}
+      <Dialog open={openBuy} onClose={handleCloseBuy}>
+        <DialogTitle>Confirm Purchase</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Do you want to proceed with the payment for the Professional plan?
+          </DialogContentText>
+          {loading && <CircularProgress />} 
+          {responseMessage && (
+            <Typography
+              variant="h6" 
+              color={responseMessage.includes('successful') ? 'green' : 'red'}
+              sx={{ mt: 2 }}
+            >
+              {responseMessage}
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseBuy}>Cancel</Button>
+          <Button onClick={handlePayment} disabled={loading}>
+            Payhere payment button
+          </Button>
         </DialogActions>
       </Dialog>
     </Container>
