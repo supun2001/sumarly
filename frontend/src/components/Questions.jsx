@@ -87,10 +87,10 @@ export default function Questions({ transcript, userConfirmation }) {
     };
 
     return (
-        <Box 
-            display="flex" 
-            flexDirection="column" 
-            justifyContent="space-between" 
+        <Box
+            display="flex"
+            flexDirection="column"
+            justifyContent="space-between"
             height="500px"
             mx="auto"
             bgcolor="background.default"
@@ -105,33 +105,44 @@ export default function Questions({ transcript, userConfirmation }) {
                     gutterBottom
                     sx={{ color: 'text.primary' }}
                 >
-                    Instant Summaries and Q&A
+                    Ask any questions about your uploaded content.
                 </Typography>
                 <Typography
                     variant="body1"
                     sx={{ color: 'text.secondary', mb: { xs: 2, sm: 4 } }}
                 >
-                    Submit a YouTube link or file to receive a concise summary. Plus, ask any questions about your audio clip to get detailed answers and insights.
+                    Upload a YouTube link or file to get a quick, clear summary. Ask questions to learn more.
                 </Typography>
             </Box>
-            <>
+            <Box
+                sx={{
+                    border: "1px solid",          // Add a border
+                    borderColor: "grey.300",      // Set the border color
+                    borderRadius: 2,              // Optional: add rounded corners
+                    padding: 2,                   // Optional: add padding inside the border
+                    display: 'flex',               // Use flex to arrange children
+                    flexDirection: 'column',       // Stack children vertically
+                    height: '100%'                 // Optional: specify height if needed
+                }}
+            >
                 {/* Messages Display */}
-                <Box 
-                    flexGrow={1} 
-                    overflow="auto" 
+                <Box
+                    flexGrow={1}
+                    overflow="auto"
                     mb={2}
                     display="flex"
                     flexDirection="column"
+
                 >
                     {messages.map((msg, index) => (
-                        <Box 
-                            key={index} 
-                            display="flex" 
+                        <Box
+                            key={index}
+                            display="flex"
                             justifyContent={msg.sender === 'user' ? 'flex-end' : 'flex-start'}
                             mb={1}
                         >
-                            <Typography 
-                                variant="body1" 
+                            <Typography
+                                variant="body1"
                                 bgcolor={msg.sender === 'user' ? 'primary.main' : 'grey.300'}
                                 color={msg.sender === 'user' ? 'white' : 'black'}
                                 p={1}
@@ -160,15 +171,15 @@ export default function Questions({ transcript, userConfirmation }) {
                         placeholder="Type your message..."
                         onKeyPress={handleKeyPress} // Handle "Enter" key press
                     />
-                    <IconButton 
-                        color="primary" 
-                        onClick={handleSendMessage} 
+                    <IconButton
+                        color="primary"
+                        onClick={handleSendMessage}
                         sx={{ ml: 1 }}
                     >
                         <SendIcon />
                     </IconButton>
                 </Box>
-            </>
+            </Box>
         </Box>
     );
 }

@@ -25,7 +25,7 @@ const tiers = [
   {
     title: 'Free',
     price: '$0',
-    description: ['15 Minutes per Month', 'Perfect for Light Users', 'Access Mobile App', '24/7 support'],
+    description: ['15 Minutes per Month', 'Perfect for Light Users', '24/7 support'],
     buttonText: 'Sign up for free',
     buttonVariant: 'outlined',
     buttonColor: 'primary',
@@ -34,7 +34,7 @@ const tiers = [
     title: 'Professional',
     subheader: 'Recommended',
     price: '$15',
-    description: ['1000 Minutes per Month', 'Best for Regular Users', 'Download PDF', 'Priority email support', 'Best deals', '24/7 support'],
+    description: ['1000 Minutes per Month', 'Best for Regular Users', 'Priority email support', '24/7 support'],
     buttonText: 'Start now',
     buttonVariant: 'contained',
     buttonColor: 'secondary',
@@ -42,7 +42,7 @@ const tiers = [
   {
     title: 'Enterprise',
     price: 'Custom',
-    description: ['Custom Solutions & Unlimited Minutes', 'Tailored for Organisations', 'Help center access', 'Phone & email support', '50% off'],
+    description: ['Custom Solutions & Unlimited Minutes', 'Tailored for Organisations', 'Help center access', 'Phone & email support'],
     buttonText: 'Contact us',
     buttonVariant: 'outlined',
     buttonColor: 'primary',

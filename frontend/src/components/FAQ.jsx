@@ -94,7 +94,7 @@ export default function FAQ() {
             </Typography>
           </AccordionDetails>
         </Accordion>
-        <Accordion
+        {/* <Accordion
           expanded={expanded === 'panel2'}
           onChange={handleChange('panel2')}
         >
@@ -169,7 +169,7 @@ export default function FAQ() {
               assistance.
             </Typography>
           </AccordionDetails>
-        </Accordion>
+        </Accordion> */}
       </Box>
     </Container>
   );

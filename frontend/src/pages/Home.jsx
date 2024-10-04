@@ -10,6 +10,7 @@ import Highlights from '../components/Highlights';
 import Pricing from '../components/Pricing';
 import FAQ from '../components/FAQ';
 import Footer from "../components/Footer";
+import Divider from '@mui/material/Divider';
 
 function Home() {
   const [mode, setMode] = React.useState('light');
