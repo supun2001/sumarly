@@ -30,7 +30,7 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['sumarly.com', 'www.sumarly.com','localhost','127.0.0.1']
+ALLOWED_HOSTS = ['backend-2487185837.dp-production-sumarly-51266-2061620635.svc.cluster.local','sumarly.com', 'www.sumarly.com','localhost','127.0.0.1']
 
 
 REST_FRAMEWORK = {
