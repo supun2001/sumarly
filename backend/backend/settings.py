@@ -30,7 +30,7 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['backend-2487185837.dp-production-sumarly-51266-2061620635.svc.cluster.local','sumarly.com', 'www.sumarly.com','localhost','127.0.0.1']
+ALLOWED_HOSTS = ['backend-2487185837.dp-production-sumarly-51266-2061620635.svc.cluster.local','sumarly.com', 'www.sumarly.com','localhost','127.0.0.1','7cee4934-08c0-4084-a7b4-32d9767e1da4.e1-eu-north-azure.choreoapps.dev']
 
 
 REST_FRAMEWORK = {
@@ -156,6 +156,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "https://www.sumarly.com",
+    "https://7cee4934-08c0-4084-a7b4-32d9767e1da4.e1-eu-north-azure.choreoapps.dev",
+    "https://backend-2487185837.dp-production-sumarly-51266-2061620635.svc.cluster.local",
 ]
 CORS_ALLOWS_CREDENTIALS = True
 
