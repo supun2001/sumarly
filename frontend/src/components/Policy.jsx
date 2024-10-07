@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Divider, Typography } from '@mui/material';
 
 export default function PoliciesPage() {
     return (
@@ -11,7 +11,8 @@ export default function PoliciesPage() {
             p={2}
             mb={2}
         >
-            {/* Refund Policy Section */}
+            
+            {/* Refund*/}
             <Typography variant="h4" gutterBottom sx={{ color: 'text.primary' }}>
                 Refund Policy
             </Typography>
@@ -24,30 +25,7 @@ export default function PoliciesPage() {
             <Typography variant="body1" sx={{ color: 'text.secondary', mb: 2 }}>
                 We operate on a monthly subscription basis for digital content processing. Once a subscription plan is activated, we do not offer refunds. However, if you receive a refund, we will give you back the money for the last month. We encourage users to explore our free plan fully before committing to a paid subscription.
             </Typography>
-            <Typography variant="h6" gutterBottom sx={{ color: 'text.secondary' }}>
-                Refunds 
-            </Typography>
-            <Typography variant="body1" sx={{ color: 'text.secondary', mb: 2 }}>
-                <ul>
-                    <li>Monthly Subscription Refunds</li>
-                    <ul>
-                        <li>
-                            We do not offer refunds for partial months or unused time within your billing cycle once a payment has been processed. However, if you have any issues with our service, please reach out to us at <b>hanzstudio.contact@gmail.com</b>, and we’ll work to resolve the matter.
-                        </li>
-                    </ul>
-                    <li>
-                        Exceptions for Refunds
-                        <ul>
-                            <li>Refunds may be considered in specific situations, such as:</li>
-                            <ul>
-                                <li>Service interruptions lasting longer than 48 hours.</li>
-                                <li>Billing errors or duplicate charges.</li>
-                            </ul>
-                            <li>In such cases, we will refund the previous month’s payment, rather than any partial month amount.</li>
-                        </ul>
-                    </li>
-                </ul>
-            </Typography>
+            
 
 
 
