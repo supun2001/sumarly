@@ -34,7 +34,7 @@ const tiers = [
     title: 'Professional',
     subheader: 'Recommended',
     price: '$15',
-    description: ['1000 Minutes per Month', 'Best for Regular Users', 'Priority email support', '24/7 support'],
+    description: ['1000 Minutes per Month', 'Best for Regular Users', 'Priority email support', '24/7 support','Detailed summaries question responses', ],
     buttonText: 'Start now',
     buttonVariant: 'contained',
     buttonColor: 'secondary',
