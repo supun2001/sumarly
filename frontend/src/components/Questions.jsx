@@ -116,13 +116,15 @@ export default function Questions({ transcript, userConfirmation }) {
             </Box>
             <Box
                 sx={{
-                    border: "1px solid",          // Add a border
-                    borderColor: "grey.300",      // Set the border color
-                    borderRadius: 2,              // Optional: add rounded corners
-                    padding: 2,                   // Optional: add padding inside the border
-                    display: 'flex',               // Use flex to arrange children
-                    flexDirection: 'column',       // Stack children vertically
-                    height: '100%'                 // Optional: specify height if needed
+                    border: "1px solid",          
+                    borderColor: "grey.300",      
+                    borderRadius: 2,              
+                    padding: 2,                  
+                    display: 'flex',              
+                    flexDirection: 'column',       
+                    flexGrow: 1,                
+                    minHeight: '300px',          // Ensure a minimum height to keep the input in place
+                    overflow: 'hidden',          // Hide overflow, ensuring that messages don't cause layout shifts
                 }}
             >
                 {/* Messages Display */}
@@ -148,8 +150,8 @@ export default function Questions({ transcript, userConfirmation }) {
                                 p={1}
                                 borderRadius="10px"
                                 maxWidth="80%"
-                                sx={{ wordWrap: 'break-word' }} // Correct property name
-                                dangerouslySetInnerHTML={{ __html: msg.text }} // Render HTML content
+                                sx={{ wordWrap: 'break-word' }} 
+                                dangerouslySetInnerHTML={{ __html: msg.text }} 
                             />
                             {/* Show CircularProgress if it's a typing indicator */}
                             {msg.isTyping && (
@@ -169,7 +171,8 @@ export default function Questions({ transcript, userConfirmation }) {
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
                         placeholder="Type your message..."
-                        onKeyPress={handleKeyPress} // Handle "Enter" key press
+                        onKeyPress={handleKeyPress}
+                        sx={{ minHeight: '56px' }}  // Ensure the input field stays at a fixed height
                     />
                     <IconButton
                         color="primary"
