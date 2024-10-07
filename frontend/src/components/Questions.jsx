@@ -124,7 +124,7 @@ export default function Questions({ transcript, userConfirmation }) {
                     flexDirection: 'column',       
                     flexGrow: 1,                
                     minHeight: '300px',          // Ensure a minimum height to keep the input in place
-                    overflow: 'hidden',          // Hide overflow, ensuring that messages don't cause layout shifts
+                    overflow: 'hidden',          
                 }}
             >
                 {/* Messages Display */}
