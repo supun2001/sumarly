@@ -25,7 +25,7 @@ export default function PoliciesPage() {
                 We operate on a monthly subscription basis for digital content processing. Once a subscription plan is activated, we do not offer refunds. However, if you receive a refund, we will give you back the money for the last month. We encourage users to explore our free plan fully before committing to a paid subscription.
             </Typography>
             <Typography variant="h6" gutterBottom sx={{ color: 'text.secondary' }}>
-                Refunds
+                Refunds 
             </Typography>
             <Typography variant="body1" sx={{ color: 'text.secondary', mb: 2 }}>
                 <ul>
