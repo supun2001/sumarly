@@ -22,6 +22,10 @@ import json
 import requests
 from urllib.parse import urlparse, parse_qs
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.middleware.csrf import get_token
+from django.http import JsonResponse
 
 # Set up AssemblyAI API key
 aai.settings.api_key = settings.API_KEY
@@ -61,6 +65,7 @@ class CreateUserView(generics.CreateAPIView):
             'user_type': 'Free',
             'transcript': 'None',
             'time' : 900,
+            'paid' : False,
         }
         user_data = UserData.objects.create(author=user, **default_data)
 
@@ -414,32 +419,32 @@ class AskQuestionView(APIView):
 # ------------------------ Admin ------------------------
 
 
+@method_decorator(ensure_csrf_cookie, name='dispatch')
 class AdminLoginView(generics.GenericAPIView):
     serializer_class = AdminLoginSerializer
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
-        # Validate and get the serializer data
+        # Validate the login request data
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
-        # Get the validated admin object from the serializer
+
+        # Get the admin user from the validated data
         admin = serializer.validated_data['admin']
 
-        # Create JWT token
+        # Generate JWT tokens for the user
         refresh = RefreshToken.for_user(admin)
-        
+
+        # Get CSRF token from the request (or generate a new one)
+        csrf_token = get_token(request)
+
+        # Return the response with the necessary data including the CSRF token
         return Response({
             "message": "Admin login successful",
-            "admin_id": admin.id,
-            "accepted": admin.accepted,
-            "email": admin.email,
-            "access_level": admin.access_level,
-            "created_at": admin.created_at,
-            "last_login": admin.last_login,
             "refresh": str(refresh),
+            "csrfToken": csrf_token,
             "access": str(refresh.access_token),
-        })
+        }, status=status.HTTP_200_OK)
 
 class AdminRegistrationView(generics.CreateAPIView):
     queryset = Admin.objects.all()
@@ -463,3 +468,23 @@ class AdminRegistrationView(generics.CreateAPIView):
             "created_at" : admin.created_at,
             "last_login" : admin.last_login
         })
+
+class FetchAllUsersView(generics.ListAPIView):
+    permission_classes = [AllowAny]  # If you want authentication
+
+    def get(self, request):
+        users = UserData.objects.all()  # Fetch all users' data
+        serializer = UserDataSerializer(users, many=True)
+        return Response(serializer.data)
+
+@method_decorator(ensure_csrf_cookie, name='dispatch')
+class CsrfTokenView(generics.GenericAPIView):
+    permission_classes = [AllowAny] 
+    def get(self, request, *args, **kwargs):
+        # Get the CSRF token
+        csrf_token = get_token(request)
+        
+        # Return the CSRF token in the response
+        return Response({
+            "csrfToken": csrf_token
+        }, status=status.HTTP_200_OK)

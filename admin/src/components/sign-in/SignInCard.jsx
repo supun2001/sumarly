@@ -10,7 +10,7 @@ import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { styled } from '@mui/material/styles';
 
 import ForgotPassword from './ForgotPassword';
@@ -21,7 +21,7 @@ import { useNavigate } from "react-router-dom";
 import { ACCESS_TOKEN, REFRESH_TOKEN } from "../../constants";
 
 // Define EMAIL as a constant
-const EMAIL = 'email';  // You can use any string here as the key name
+const EMAIL = 'email';
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: 'flex',
@@ -30,34 +30,59 @@ const Card = styled(MuiCard)(({ theme }) => ({
   width: '100%',
   padding: theme.spacing(4),
   gap: theme.spacing(2),
-  boxShadow:
-    'hsla(220, 30%, 5%, 0.05) 0px 5px 15px 0px, hsla(220, 25%, 10%, 0.05) 0px 15px 35px -5px',
+  boxShadow: 'hsla(220, 30%, 5%, 0.05) 0px 5px 15px 0px, hsla(220, 25%, 10%, 0.05) 0px 15px 35px -5px',
   [theme.breakpoints.up('sm')]: {
     width: '450px',
   },
   ...theme.applyStyles('dark', {
-    boxShadow:
-      'hsla(220, 30%, 5%, 0.5) 0px 5px 15px 0px, hsla(220, 25%, 10%, 0.08) 0px 15px 35px -5px',
+    boxShadow: 'hsla(220, 30%, 5%, 0.5) 0px 5px 15px 0px, hsla(220, 25%, 10%, 0.08) 0px 15px 35px -5px',
   }),
 }));
 
 export default function SignInCard({ route, method }) {
-  const [emailError, setEmailError] = React.useState(false);
-  const [emailErrorMessage, setEmailErrorMessage] = React.useState('');
-  const [passwordError, setPasswordError] = React.useState(false);
-  const [passwordErrorMessage, setPasswordErrorMessage] = React.useState('');
-  const [confirmPasswordError, setConfirmPasswordError] = React.useState(false);
-  const [confirmPasswordErrorMessage, setConfirmPasswordErrorMessage] = React.useState('');
-  const [open, setOpen] = React.useState(false);
-  const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [emailError, setEmailError] = useState(false);
+  const [emailErrorMessage, setEmailErrorMessage] = useState('');
+  const [passwordError, setPasswordError] = useState(false);
+  const [passwordErrorMessage, setPasswordErrorMessage] = useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState(false);
+  const [confirmPasswordErrorMessage, setConfirmPasswordErrorMessage] = useState('');
+  const [open, setOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState(""); // New state for confirm password
+  const [confirmPassword, setConfirmPassword] = useState(""); // For register form
   const [loading, setLoading] = useState(false);
+  const [csrfToken, setCsrfToken] = useState(""); // CSRF token state
   const navigate = useNavigate();
 
   const name = method === "login" ? "Login" : "Register";
+
+  useEffect(() => {
+    const fetchCsrfToken = async () => {
+        try {
+            const response = await fetch('/api/csfr/', {
+                method: 'GET',
+                credentials: 'include', // Ensure cookies are sent with the request
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text(); // Read the error response for debugging
+                throw new Error(`Error: ${response.status} ${response.statusText} - ${errorText}`);
+            }
+
+            const data = await response.json(); // Parse JSON
+            setCsrfToken(data.csrfToken); // Set the CSRF token from response
+
+        } catch (error) {
+            console.error('Error fetching CSRF token:', error);
+        }
+    };
+
+    fetchCsrfToken(); // Call the async function
+}, []);
+
+
 
   const handleClickOpen = () => {
     setOpen(true);
@@ -69,15 +94,25 @@ export default function SignInCard({ route, method }) {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!validateInputs()) return;
     setLoading(true);
-  
+
+    if (!csrfToken) {
+      console.error("CSRF token is missing");
+      setEmailError(true);
+      setEmailErrorMessage("Unable to submit form, missing CSRF token");
+      setLoading(false);
+      return;
+    }
+
     try {
       const requestBody = { email, password };
-      const res = await api.post(route, requestBody);
-  
-      console.log('Response:', res); 
-  
+      const config = {
+        headers: {
+          'X-CSRFToken': csrfToken, // Add CSRF token to the headers
+        },
+      };
+      const res = await api.post(route, requestBody, config);
+
       if (method === "login") {
         if (res.status === 200) {
           localStorage.setItem(ACCESS_TOKEN, res.data.access);
@@ -87,14 +122,13 @@ export default function SignInCard({ route, method }) {
           localStorage.setItem('accepted', res.data.accepted);
           localStorage.setItem('created_at', res.data.created_at);
           localStorage.setItem('last_login', res.data.last_login);
-          console.log('Navigating to home'); // Log before navigation
           navigate("/");
         }
       } else {
         setDialogOpen(true);
       }
     } catch (error) {
-      console.error("Login error:", error); // Log the full error
+      console.error("Login error:", error);
       if (error.response) {
         if (error.response.status === 401) {
           setEmailError(true);
@@ -114,61 +148,16 @@ export default function SignInCard({ route, method }) {
       setLoading(false);
     }
   };
-  
-
-
-
-  const validateInputs = () => {
-    let isValid = true;
-
-    if (!email || !/\S+@\S+\.\S+/.test(email)) {
-      setEmailError(true);
-      setEmailErrorMessage('Please enter a valid email address.');
-      isValid = false;
-    } else {
-      setEmailError(false);
-      setEmailErrorMessage('');
-    }
-
-    if (!password || password.length < 2) {
-      setPasswordError(true);
-      setPasswordErrorMessage('Password must be at least 6 characters long.');
-      isValid = false;
-    } else {
-      setPasswordError(false);
-      setPasswordErrorMessage('');
-    }
-
-    if (method === "register" && password !== confirmPassword) {
-      setConfirmPasswordError(true);
-      setConfirmPasswordErrorMessage('Passwords do not match.');
-      isValid = false;
-    } else {
-      setConfirmPasswordError(false);
-      setConfirmPasswordErrorMessage('');
-    }
-
-    return isValid;
-  };
 
   return (
     <Card variant="outlined">
       <Box sx={{ display: { xs: 'flex', md: 'none' } }}>
         <SitemarkIcon />
       </Box>
-      <Typography
-        component="h1"
-        variant="h4"
-        sx={{ width: '100%', fontSize: 'clamp(2rem, 10vw, 2.15rem)' }}
-      >
+      <Typography component="h1" variant="h4" sx={{ width: '100%', fontSize: 'clamp(2rem, 10vw, 2.15rem)' }}>
         {name}
       </Typography>
-      <Box
-        component="form"
-        onSubmit={handleSubmit}
-        noValidate
-        sx={{ display: 'flex', flexDirection: 'column', width: '100%', gap: 2 }}
-      >
+      <Box component="form" onSubmit={handleSubmit} noValidate sx={{ display: 'flex', flexDirection: 'column', width: '100%', gap: 2 }}>
         <FormControl>
           <TextField
             error={emailError}
@@ -191,12 +180,7 @@ export default function SignInCard({ route, method }) {
           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
             <Typography>Password</Typography>
             {method === "login" && (
-              <Link
-                component="button"
-                onClick={handleClickOpen}
-                variant="body2"
-                sx={{ alignSelf: 'baseline' }}
-              >
+              <Link component="button" onClick={handleClickOpen} variant="body2" sx={{ alignSelf: 'baseline' }}>
                 Forgot your password?
               </Link>
             )}
@@ -243,45 +227,22 @@ export default function SignInCard({ route, method }) {
           {loading ? 'Loading...' : name}
         </Button>
         <Typography sx={{ textAlign: 'center' }}>
-          {method === "login" ? (
-            <>
-              Don&apos;t have an account?{' '}
-              <Link
-                href="/register"
-                variant="body2"
-                sx={{ alignSelf: 'center' }}
-              >
-                Sign up
-              </Link>
-            </>
-          ) : (
-            <>
-              Already have an account?{' '}
-              <Link
-                href="/login"
-                variant="body2"
-                sx={{ alignSelf: 'center' }}
-              >
-                Log in
-              </Link>
-            </>
-          )}
+          {method === "login" ? "Don't have an account? " : "Already have an account? "}
+          <Link component="button" onClick={() => window.location.reload()} variant="body2">
+            {method === "login" ? "Register" : "Login"}
+          </Link>
         </Typography>
       </Box>
 
-      {/* Dialog Component */}
-      <Dialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-      >
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
         <DialogTitle>Registration Successful</DialogTitle>
         <DialogContent>
-          <Typography>
-            Please check your email and verify your account.
-          </Typography>
+          <Typography variant="body1">Please check your email to confirm your registration.</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>OK</Button>
+          <Button onClick={() => setDialogOpen(false)} color="primary">
+            Close
+          </Button>
         </DialogActions>
       </Dialog>
     </Card>

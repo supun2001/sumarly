@@ -74,7 +74,7 @@ export default function UserSettings({ open, onClose }) {
                                     <Typography variant="body1">Remaing Time: {userSettings.time} seconds</Typography>
                                 </Box>
                                 <Box mb={2}>
-                                    <Typography variant="body1">User Type: {userSettings.user_type}</Typography>
+                                    <Typography variant="body1">Plan : {userSettings.user_type}</Typography>
                                 </Box>
                                 <Box mb={2}>
                                     <Typography variant="body1">Email Confirmed: {userSettings.confirmed ? 'Yes' : 'No'}</Typography>

@@ -13,6 +13,8 @@ urlpatterns = [
     path('contact_us/', views.ContactUsView.as_view(), name='contact_us'),
     path('admin_login/', views.AdminLoginView.as_view(), name='admin_login'),
     path('admin_reg/', views.AdminRegistrationView.as_view(), name='admin_reg'),
-    path('buy/', views.UpdateAllTimeView.as_view(), name="buy")
+    path('buy/', views.UpdateAllTimeView.as_view(), name="buy"),
+    path('all_users/', views.FetchAllUsersView.as_view(),name = "all_users"),
+    path('csfr/', views.CsrfTokenView.as_view(),name = "csfr"),
 ]
 

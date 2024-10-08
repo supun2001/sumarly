@@ -161,6 +161,13 @@ CORS_ALLOWED_ORIGINS = [
 ]
 CORS_ALLOWS_CREDENTIALS = True
 
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:5173',  # Add your frontend URL here
+]
+
+# Temporarily disable CSRF in development
+CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_HTTPONLY = False
 
 # AWS S3 Configuration
 AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
