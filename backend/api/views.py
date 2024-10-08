@@ -140,24 +140,36 @@ class UpdateAllTimeView(generics.GenericAPIView):
 
     def post(self, request, *args, **kwargs):
         try:
-            # Update the time, paid, user_type, and paid_date fields for all UserData instances
-            current_date = timezone.now()  # Get the current date and time
-            updated_count = UserData.objects.all().update(
+            # Get the current authenticated user
+            user = request.user
+
+            # Get the current date and time
+            current_date = timezone.now()
+
+            # Filter UserData by the current user (author)
+            updated_count = UserData.objects.filter(author=user).update(
                 time=60000,
                 paid=True,
                 user_type='Professional',  # Set user_type to Professional
                 paid_date=current_date  # Set the paid_date to the current date
             )
 
-            logger.info(f'Updated {updated_count} UserData instances successfully.')
+            if updated_count > 0:
+                logger.info(f'Updated {updated_count} UserData instances for user {user.email} successfully.')
 
-            return Response({
-                'status': 'success', 
-                'message': f'Updated {updated_count} UserData instances: time set to 60000, paid set to True, user_type set to Professional, and paid_date set to {current_date}.'
-            }, status=status.HTTP_200_OK)
+                return Response({
+                    'status': 'success', 
+                    'message': f'Updated {updated_count} UserData instances for user {user.email}: time set to 60000, paid set to True, user_type set to Professional, and paid_date set to {current_date}.'
+                }, status=status.HTTP_200_OK)
+            else:
+                logger.warning(f'No UserData instances found for user {user.email}.')
+                return Response({
+                    'status': 'warning',
+                    'message': f'No UserData instances found for user {user.email}.'
+                }, status=status.HTTP_404_NOT_FOUND)
 
         except Exception as e:
-            logger.error(f'Error updating UserData instances: {str(e)}')
+            logger.error(f'Error updating UserData instances for user {request.user.email}: {str(e)}')
             return Response({
                 'status': 'error',
                 'message': 'Failed to update UserData instances. Please try again later.'

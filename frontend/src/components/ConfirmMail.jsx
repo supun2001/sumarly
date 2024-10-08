@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Button, Typography, Container, Box, Snackbar } from '@mui/material';
+import { Button, Typography, Container, Box, Snackbar, CircularProgress } from '@mui/material';
 import { Alert } from '@mui/material';
 import api from "../api";
 
@@ -8,6 +8,7 @@ const ConfirmEmail = () => {
     const [token, setToken] = useState(null);
     const [confirmationStatus, setConfirmationStatus] = useState('');
     const [openSnackbar, setOpenSnackbar] = useState(false);
+    const [loading, setLoading] = useState(false); // Added loading state
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -23,12 +24,14 @@ const ConfirmEmail = () => {
 
     const confirmEmail = () => {
         if (token) {
+            setLoading(true); // Start loading
             api
                 .get(`/api/confirm-email/${token}/`)
                 .then((res) => {
                     // Handle successful response
                     setConfirmationStatus(res.data.message);
                     setOpenSnackbar(true);
+                    setLoading(false); // Stop loading
                     if (res.status === 200) {
                         setTimeout(() => navigate('/login'), 3000); // Redirect after 3 seconds
                     }
@@ -43,10 +46,10 @@ const ConfirmEmail = () => {
                     }
                     setConfirmationStatus(errorMessage);
                     setOpenSnackbar(true);
+                    setLoading(false); // Stop loading
                 });
         }
     };
-    
 
     const handleCloseSnackbar = () => {
         setOpenSnackbar(false);
@@ -59,16 +62,31 @@ const ConfirmEmail = () => {
                     Confirm Email
                 </Typography>
                 <Typography variant="body1" gutterBottom>
-                       Confrim your email
-                    </Typography>
-                <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={confirmEmail}
-                    sx={{ mt: 2 }}
-                >
-                    Confirm
-                </Button>
+                    Confirm your email
+                </Typography>
+                <Box sx={{ mt: 2, position: 'relative', display: 'inline-flex' }}>
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={confirmEmail}
+                        disabled={loading} // Disable button when loading
+                        sx={{ mt: 2 }}
+                    >
+                        Confirm
+                    </Button>
+                    {loading && (
+                        <CircularProgress 
+                            size={24} 
+                            sx={{ 
+                                position: 'absolute', 
+                                top: '50%', 
+                                left: '50%', 
+                                marginTop: '-12px', 
+                                marginLeft: '-12px' 
+                            }} 
+                        />
+                    )}
+                </Box>
             </Box>
             <Snackbar
                 open={openSnackbar}

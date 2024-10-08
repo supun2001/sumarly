@@ -13,7 +13,7 @@ class UserData(models.Model):
     token_created_at = models.DateTimeField(default=timezone.now)  # When the token was created
     confirmed = models.BooleanField(default=False) 
     paid = models.BooleanField(default=False)
-    paid_date = models.DateTimeField(null=True, blank=True)  # New field for storing the paid date
+    paid_date = models.DateTimeField(auto_now_add=True)  # New field for storing the paid date
 
     def __str__(self):
         return str(self.time)

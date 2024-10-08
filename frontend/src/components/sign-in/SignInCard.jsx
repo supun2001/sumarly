@@ -71,11 +71,16 @@ export default function SignInCard({ route, method }) {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (method == 'Register' && !checkedPolicies) {
+
+    // Check if method is "Register" and the checkbox is not checked
+    if (method === "Register" && !checkedPolicies) {
       setPolicyError(true);
       return; // Prevent submission if checkbox is not checked
     }
+
+    // Validate other inputs
     if (!validateInputs()) return;
+
     setLoading(true);
     try {
       const res = await api.post(route, { username, password });
@@ -206,7 +211,7 @@ export default function SignInCard({ route, method }) {
           />
         </FormControl>
 
-                {method === "register" && (
+        {method === "register" && (
           <>
             <FormControl>
               <Typography>Confirm Password</Typography>
@@ -259,7 +264,12 @@ export default function SignInCard({ route, method }) {
 
 
         <ForgotPassword open={open} handleClose={handleClose} />
-        <Button type="submit" fullWidth variant="contained" disabled={loading}>
+        <Button
+          type="submit"
+          fullWidth
+          variant="contained"
+          disabled={loading || (method === "Register" && !checkedPolicies)} // Disable if loading or policies not checked in registration
+        >
           {loading ? 'Loading...' : name}
         </Button>
         <Typography sx={{ textAlign: 'center' }}>
