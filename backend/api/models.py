@@ -14,6 +14,7 @@ class UserData(models.Model):
     confirmed = models.BooleanField(default=False) 
     paid = models.BooleanField(default=False)
     paid_date = models.DateTimeField(auto_now_add=True)  # New field for storing the paid date
+    
 
     def __str__(self):
         return str(self.time)

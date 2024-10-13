@@ -34,7 +34,7 @@ const tiers = [
     title: 'Professional',
     subheader: 'Recommended',
     price: '$15',
-    description: ['1000 Minutes per Month', 'Best for Regular Users', 'Priority email support', '24/7 support','Detailed summaries question responses', ],
+    description: ['1000 Minutes per Month', 'Best for Regular Users', 'Priority email support', '24/7 support', 'Detailed summaries question responses',],
     buttonText: 'Start now',
     buttonVariant: 'contained',
     buttonColor: 'secondary',
@@ -62,10 +62,16 @@ export default function Pricing() {
     organization: '',
   });
   const [responseMessage, setResponseMessage] = React.useState(''); // State for API response message
+  const [hash, setHash] = React.useState();
+  const [hashEmail, setHashEmail] = React.useState('');
+  const [orderID, setOrderId] = React.useState('');
 
   const getEmail = () => {
     const storedEmail = localStorage.getItem('email');
     setEmail(!!storedEmail);
+    if (storedEmail) {
+      setHashEmail(storedEmail); // Set hashEmail to the retrieved email
+    }
   };
 
   React.useEffect(() => {
@@ -118,20 +124,8 @@ export default function Pricing() {
     setContactUs();
   };
 
-  const handlePayment = async () => {
-    setLoading(true); // Start loading
-    try {
-      const response = await api.post("/api/buy/"); // Call payment API
-      if (response.status === 200) {
-        setResponseMessage('Payment successful!'); // Set success message
-      } else {
-        setResponseMessage('Payment failed. Please try again.'); // Set error message
-      }
-    } catch (error) {
-      setResponseMessage('Payment failed. Please try again.'); // Set error message
-    } finally {
-      setLoading(false); // Stop loading
-    }
+  const handlePayment = () => {
+    navigate('/pay');
   };
 
   return (
@@ -147,6 +141,9 @@ export default function Pricing() {
         gap: { xs: 3, sm: 6 },
       }}
     >
+      <Typography component="h2" variant="h4" gutterBottom>
+        Pricing
+      </Typography>
       {/* Pricing content */}
       <Grid container spacing={3} sx={{ alignItems: 'center', justifyContent: 'center', width: '100%' }}>
         {tiers.map((tier) => (
@@ -176,6 +173,7 @@ export default function Pricing() {
                     </Typography>
                   </Box>
                 ))}
+
               </CardContent>
               <CardActions>
                 <Button fullWidth variant={tier.buttonVariant} color={tier.buttonColor} onClick={() => handleButtonClick(tier.title)}>
@@ -199,92 +197,41 @@ export default function Pricing() {
             autoFocus
             required
             margin="dense"
-            label="Email Address"
-            placeholder="Email address"
-            type="email"
+            label="Your Email Address"
             fullWidth
             name="email"
             value={formData.email}
             onChange={handleInputChange}
-            sx={{ mb: 2 }}
-          />
-          <OutlinedInput
-            required
-            margin="dense"
-            label="Title"
-            placeholder="Title"
-            fullWidth
-            name="title"
-            value={formData.title}
-            onChange={handleInputChange}
-            sx={{ mb: 2 }}
-          />
-          <OutlinedInput
-            required
-            margin="dense"
-            label="Organization"
-            placeholder="Organization"
-            fullWidth
-            name="organization"
-            value={formData.organization}
-            onChange={handleInputChange}
-            sx={{ mb: 2 }}
           />
           <OutlinedInput
             required
             margin="dense"
             label="Message"
-            placeholder="Message"
             fullWidth
-            multiline
-            rows={4}
             name="message"
             value={formData.message}
             onChange={handleInputChange}
-            sx={{ mb: 2 }}
           />
-          {loading && <CircularProgress />} 
-          {responseMessage && (
-            <Typography
-              variant="h6" // Change to h6 for better visibility
-              color={responseMessage.includes('successfully') ? 'green' : 'red'}
-              sx={{ mt: 2 }}
-            >
-              {responseMessage}
-            </Typography>
-          )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseContact}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={loading}>
-            Submit
+          <Button onClick={handleCloseContact} color="primary">Cancel</Button>
+          <Button onClick={handleSubmit} color="primary" disabled={loading}>
+            {loading ? <CircularProgress size={24} /> : 'Submit'}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Dialog for Payment */}
+      {/* Dialog for "Buy Now" */}
       <Dialog open={openBuy} onClose={handleCloseBuy}>
         <DialogTitle>Confirm Purchase</DialogTitle>
         <DialogContent>
           <DialogContentText>
             Do you want to proceed with the payment for the Professional plan?
           </DialogContentText>
-          {loading && <CircularProgress />} 
-          {responseMessage && (
-            <Typography
-              variant="h6" 
-              color={responseMessage.includes('successful') ? 'green' : 'red'}
-              sx={{ mt: 2 }}
-            >
-              {responseMessage}
-            </Typography>
-          )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseBuy}>Cancel</Button>
-          <Button onClick={handlePayment} disabled={loading}>
-            Payhere payment button
-          </Button>
+          <Button onClick={handleCloseBuy} color="primary">Cancel</Button>
+          <Button onClick={handlePayment} color="primary">PayNow</Button>
         </DialogActions>
       </Dialog>
     </Container>

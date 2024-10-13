@@ -196,3 +196,4 @@ SITE_URL = 'https://www.sumarly.com/'
 
 RAPIDAPI_KEY = rapidapi_key
 RAPIDAPI_HOST = rapidapi_host
+PAYHERE_SECRET = os.environ.get("PAYHERE_SECRET")

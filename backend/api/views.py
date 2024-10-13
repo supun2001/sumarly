@@ -65,7 +65,7 @@ class CreateUserView(generics.CreateAPIView):
             'user_type': 'Free',
             'transcript': 'None',
             'time' : 900,
-            'paid' : False,
+            'paid' : False
         }
         user_data = UserData.objects.create(author=user, **default_data)
 
@@ -500,3 +500,77 @@ class CsrfTokenView(generics.GenericAPIView):
         return Response({
             "csrfToken": csrf_token
         }, status=status.HTTP_200_OK)
+
+
+# Payment hash genraator
+
+class GeneratePaymentHash(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        merchant_id = "1211149"
+        amount = "4300.00"
+        currency = "LKR"
+        username = request.data.get('username')
+
+        if not username:
+            logger.error('Username is required in the request')
+            return Response({'error': 'Username is required'}, status=400)
+
+        order_id = f"Order_{username}_{hashlib.md5(username.encode('utf-8')).hexdigest()[:6]}"
+        merchant_secret = settings.PAYHERE_SECRET
+
+        if not merchant_secret:
+            logger.error('Merchant secret is not configured')
+            return Response({'error': 'Merchant secret is not configured'}, status=400)
+
+        hash_string = f"{merchant_id}{order_id}{amount}{currency}{merchant_secret}"
+        payment_hash = hashlib.md5(hash_string.encode('utf-8')).hexdigest()
+
+        logger.info(f'Generated payment hash: {payment_hash} for order ID: {order_id}')
+
+        return Response({
+            'hash': payment_hash,
+            'order_id': order_id,
+        })
+    
+class ValidatePaymentHash(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        # Retrieve the fields from the request data
+        hash_value = request.data.get('hash')
+        order_id = request.data.get('order_id')
+        amount = request.data.get('amount')  # Amount should be passed in request
+        username = request.data.get('username')  # Username should also be passed
+        merchant_id = "1228421"  # Sandbox Merchant ID
+        currency = "LKR"
+
+        # Validate that all required fields are provided
+        if not all([hash_value, order_id, amount, username]):
+            return Response({'error': 'All fields (hash, order_id, amount, username) are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Retrieve user by username
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        user_id = user.id
+
+        # Recreate the order_id from user_id
+        generated_order_id = f"Order_{user_id}_{hashlib.md5(str(user_id).encode('utf-8')).hexdigest()[:6]}"
+
+        # Check if the order_id matches
+        if generated_order_id != order_id:
+            return Response({'error': 'Invalid order ID'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Generate the hash using the same method as before
+        hash_string = f'{merchant_id}{order_id}{amount}{currency}{settings.PAYHERE_SECRET}'
+        generated_hash = hashlib.md5(hash_string.encode('utf-8')).hexdigest()
+
+        # Validate the hash
+        if generated_hash == hash_value:
+            return Response({'valid': True, 'message': 'Hash is valid'}, status=status.HTTP_200_OK)
+        else:
+            return Response({'valid': False, 'message': 'Hash does not match'}, status=status.HTTP_400_BAD_REQUEST)

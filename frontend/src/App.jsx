@@ -10,6 +10,7 @@ import Buy from "./components/Buy"
 import RestPassword from "./components/sign-in/RestPassword"
 import UserSettings from "./components/userSettings"
 import PoliciesPage from "./components/Policy"
+import PayHerePaymentPage from "./components/PayHere"
 
 function Logout() {
   localStorage.clear()
@@ -51,6 +52,11 @@ function App() {
           <Route path="*" element={
             <ProtectedRoute>
               <Notfount />
+              </ProtectedRoute>
+            }></Route>
+            <Route path="/pay" element={
+            <ProtectedRoute>
+              <PayHerePaymentPage />
               </ProtectedRoute>
             }></Route>
         </Routes>
