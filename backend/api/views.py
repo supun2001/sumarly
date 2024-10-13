@@ -535,7 +535,7 @@ class GeneratePaymentHash(APIView):
         })
     
 class ValidatePaymentHash(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         # Retrieve the fields from the request data
