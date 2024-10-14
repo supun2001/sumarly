@@ -25,7 +25,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.middleware.csrf import get_token
-from django.http import JsonResponse
+import time
+import random
 
 # Set up AssemblyAI API key
 aai.settings.api_key = settings.API_KEY
@@ -501,41 +502,66 @@ class CsrfTokenView(generics.GenericAPIView):
             "csrfToken": csrf_token
         }, status=status.HTTP_200_OK)
 
-
-# Payment hash genraator
-
+# Payment hash generator
 class GeneratePaymentHash(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        merchant_id = "1211149"
-        amount = "4300.00"
-        currency = "LKR"
-        username = request.data.get('username')
+        merchant_id = "1228421"
+        amount = "4300"  # Dynamically set amount
+        currency = "LKR"  # Dynamically set currency
+        items = "Sumarly Monthly subscription"
+        first_name = request.data.get('first_name')
+        last_name = request.data.get('last_name')
+        email = request.data.get('email')
+        phone = request.data.get('phone')
+        address = request.data.get('address')
+        city = request.data.get('city')
+        country = request.data.get('country')
 
-        if not username:
-            logger.error('Username is required in the request')
-            return Response({'error': 'Username is required'}, status=400)
+        # Validate required fields
+        if not email:
+            logger.error('email is required in the request')
+            return Response({'error': 'email is required'}, status=400)
 
-        order_id = f"Order_{username}_{hashlib.md5(username.encode('utf-8')).hexdigest()[:6]}"
-        merchant_secret = settings.PAYHERE_SECRET
+        if not first_name or not last_name:
+            logger.error('First name and last name are required')
+            return Response({'error': 'First name and last name are required'}, status=400)
 
+        # Generate a unique order ID using username
+        order_id = f"Order_{email}_{hashlib.md5(email.encode('utf-8')).hexdigest()[:6]}"
+        merchant_secret = "MzQ3NzgxMDAwNjIxNzkzNjAzNzU0ODY2MzQ4MDMzNTk1NTE3NTc="
+
+        # Check for merchant secret
         if not merchant_secret:
             logger.error('Merchant secret is not configured')
             return Response({'error': 'Merchant secret is not configured'}, status=400)
 
+        # Construct the hash string
         hash_string = f"{merchant_id}{order_id}{amount}{currency}{merchant_secret}"
         payment_hash = hashlib.md5(hash_string.encode('utf-8')).hexdigest()
 
-        logger.info(f'Generated payment hash: {payment_hash} for order ID: {order_id}')
+        logger.info(f"Generated payment_hash: {payment_hash}, order_id: {order_id}, amount: {amount}")
 
         return Response({
             'hash': payment_hash,
-            'order_id': order_id,
+            'orderID': order_id,
+            'merchant_id': merchant_id,
+            'email': email,  
+            'items': items,
+            'first_name': first_name,
+            'last_name': last_name,
+            'phone': phone,
+            'address': address,
+            'city': city,
+            'country': country,
+            'amount':amount,
+            'currency':currency
+
         })
-    
+
 class ValidatePaymentHash(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request):
         # Retrieve the fields from the request data
@@ -556,10 +582,8 @@ class ValidatePaymentHash(APIView):
         except User.DoesNotExist:
             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        user_id = user.id
-
-        # Recreate the order_id from user_id
-        generated_order_id = f"Order_{user_id}_{hashlib.md5(str(user_id).encode('utf-8')).hexdigest()[:6]}"
+        # Generate the order_id using the same logic as in GeneratePaymentHash
+        generated_order_id = f"Order_{username}_{hashlib.md5(username.encode('utf-8')).hexdigest()[:6]}"
 
         # Check if the order_id matches
         if generated_order_id != order_id:
@@ -568,6 +592,8 @@ class ValidatePaymentHash(APIView):
         # Generate the hash using the same method as before
         hash_string = f'{merchant_id}{order_id}{amount}{currency}{settings.PAYHERE_SECRET}'
         generated_hash = hashlib.md5(hash_string.encode('utf-8')).hexdigest()
+
+        logger.info(f"Validating hash. Expected: {hash_value}, Generated: {generated_hash}")
 
         # Validate the hash
         if generated_hash == hash_value:

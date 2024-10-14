@@ -16,7 +16,7 @@ urlpatterns = [
     path('buy/', views.UpdateAllTimeView.as_view(), name="buy"),
     path('all_users/', views.FetchAllUsersView.as_view(),name = "all_users"),
     path('csfr/', views.CsrfTokenView.as_view(),name = "csfr"),
-    path('get_hash',views.GeneratePaymentHash.as_view(),name="get_hash"),
-    path('hash',views.ValidatePaymentHash.as_view(),name="hash"),
+    path('get_hash/',views.GeneratePaymentHash.as_view(),name="get_hash"),
+    path('hash/',views.ValidatePaymentHash.as_view(), name="hash")
 ]
 
