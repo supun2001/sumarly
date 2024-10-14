@@ -530,7 +530,7 @@ class GeneratePaymentHash(APIView):
 
         # Generate a unique order ID using username
         order_id = f"Order_{email}_{hashlib.md5(email.encode('utf-8')).hexdigest()[:6]}"
-        merchant_secret = "MzQ3NzgxMDAwNjIxNzkzNjAzNzU0ODY2MzQ4MDMzNTk1NTE3NTc="
+        merchant_secret = settings.PAYHERE_SECRET
 
         # Check for merchant secret
         if not merchant_secret:
