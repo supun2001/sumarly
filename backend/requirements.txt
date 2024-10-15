@@ -16,3 +16,4 @@ sqlparse
 psycopg2-binary
 pydub
 selenium
+requests
