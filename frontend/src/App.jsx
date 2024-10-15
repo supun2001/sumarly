@@ -1,4 +1,4 @@
-import {React, useState} from "react"
+import { React, useState } from "react"
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import Home from "./pages/Home"
 import Login from "./pages/Login."
@@ -11,6 +11,7 @@ import RestPassword from "./components/sign-in/RestPassword"
 import UserSettings from "./components/userSettings"
 import PoliciesPage from "./components/Policy"
 import PayHerePaymentPage from "./components/PayHere"
+import PaymentNotification from "./components/PaymentNotification"
 
 function Logout() {
   localStorage.clear()
@@ -30,7 +31,7 @@ function App() {
           <Route
             path="/"
             element={
-                <Home />
+              <Home />
             }
           />
           <Route path="/login" element={<Login />} />
@@ -42,23 +43,28 @@ function App() {
           <Route path="/buy" element={
             <ProtectedRoute>
               <Buy />
-              </ProtectedRoute>
-            }></Route>
+            </ProtectedRoute>
+          }></Route>
           <Route path="/settings" element={
             <ProtectedRoute>
               <UserSettings />
-              </ProtectedRoute>
-            }></Route>
+            </ProtectedRoute>
+          }></Route>
           <Route path="*" element={
             <ProtectedRoute>
               <Notfount />
-              </ProtectedRoute>
-            }></Route>
-            <Route path="/pay" element={
+            </ProtectedRoute>
+          }></Route>
+          <Route path="/pay" element={
             <ProtectedRoute>
               <PayHerePaymentPage />
-              </ProtectedRoute>
-            }></Route>
+            </ProtectedRoute>
+          }></Route>
+          <Route path="/notify" element={
+            <ProtectedRoute>
+              <PaymentNotification />
+            </ProtectedRoute>
+          }></Route>
         </Routes>
       </BrowserRouter>
     </>

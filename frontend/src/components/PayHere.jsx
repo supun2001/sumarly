@@ -87,9 +87,9 @@ const PayHerePaymentPage = () => {
         const payment = {
           sandbox: true,
           merchant_id: res.data.merchant_id, // Ensure this is not undefined
-          return_url: 'http://localhost:5173/', // Important: Provide your return URL
-          cancel_url: 'http://localhost:5173/', // Important: Provide your cancel URL
-          notify_url: 'http://localhost:5173/', // Change this to your production URL
+          return_url: 'https://www.sumarly.com/notify', // Important: Provide your return URL
+          cancel_url: 'https://www.sumarly.com/notify', // Important: Provide your cancel URL
+          notify_url: 'https://www.sumarly.com/notify', // Change this to your production URL
           order_id: res.data.orderID, // Use the order ID from state
           items: res.data.items, // Ensure this is not undefined or empty
           amount: res.data.amount, // Ensure this is not undefined
@@ -134,7 +134,7 @@ const PayHerePaymentPage = () => {
           Email : {email}
         </Typography>
         <Typography variant="body1" component="h2">
-          Amount : Rs.{amount} (LKR)
+          Amount : Rs.4300.00 (LKR)
         </Typography>
 
         <form onSubmit={(e) => e.preventDefault()}>

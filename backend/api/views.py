@@ -26,7 +26,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.middleware.csrf import get_token
 import time
-import random
+import random 
 
 # Set up AssemblyAI API key
 aai.settings.api_key = settings.API_KEY
@@ -503,12 +503,13 @@ class CsrfTokenView(generics.GenericAPIView):
         }, status=status.HTTP_200_OK)
 
 # Payment hash generator
+
 class GeneratePaymentHash(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
         merchant_id = "1228421"
-        amount = "4300"  # Dynamically set amount
+        amount = 4300.00  # Dynamically set amount
         currency = "LKR"  # Dynamically set currency
         items = "Sumarly Monthly subscription"
         first_name = request.data.get('first_name')
@@ -521,14 +522,14 @@ class GeneratePaymentHash(APIView):
 
         # Validate required fields
         if not email:
-            logger.error('email is required in the request')
-            return Response({'error': 'email is required'}, status=400)
+            logger.error('Email is required in the request')
+            return Response({'error': 'Email is required'}, status=400)
 
         if not first_name or not last_name:
             logger.error('First name and last name are required')
             return Response({'error': 'First name and last name are required'}, status=400)
 
-        # Generate a unique order ID using username
+        # Generate a unique order ID using email
         order_id = f"Order_{email}_{hashlib.md5(email.encode('utf-8')).hexdigest()[:6]}"
         merchant_secret = settings.PAYHERE_SECRET
 
@@ -537,17 +538,23 @@ class GeneratePaymentHash(APIView):
             logger.error('Merchant secret is not configured')
             return Response({'error': 'Merchant secret is not configured'}, status=400)
 
-        # Construct the hash string
-        hash_string = f"{merchant_id}{order_id}{amount}{currency}{merchant_secret}"
-        payment_hash = hashlib.md5(hash_string.encode('utf-8')).hexdigest()
+        # Format the amount to two decimal places (like PHP's number_format)
+        formatted_amount = f"{amount:.2f}"
 
-        logger.info(f"Generated payment_hash: {payment_hash}, order_id: {order_id}, amount: {amount}")
+        # Hash the merchant_secret and convert to uppercase
+        merchant_secret_hash = hashlib.md5(merchant_secret.encode('utf-8')).hexdigest().upper()
+
+        # Construct the hash string as per the PHP logic and generate the final hash value
+        hash_string = f"{merchant_id}{order_id}{formatted_amount}{currency}{merchant_secret_hash}"
+        payment_hash = hashlib.md5(hash_string.encode('utf-8')).hexdigest().upper()
+
+        logger.info(f"Generated payment_hash: {payment_hash}, order_id: {order_id}, amount: {formatted_amount}")
 
         return Response({
             'hash': payment_hash,
             'orderID': order_id,
             'merchant_id': merchant_id,
-            'email': email,  
+            'email': email,
             'items': items,
             'first_name': first_name,
             'last_name': last_name,
@@ -555,11 +562,10 @@ class GeneratePaymentHash(APIView):
             'address': address,
             'city': city,
             'country': country,
-            'amount':amount,
-            'currency':currency
-
+            'amount': formatted_amount,
+            'currency': currency
         })
-
+    
 class ValidatePaymentHash(APIView):
     permission_classes = [AllowAny]
 
@@ -568,15 +574,17 @@ class ValidatePaymentHash(APIView):
         hash_value = request.data.get('hash')
         order_id = request.data.get('order_id')
         amount = request.data.get('amount')  # Amount should be passed in request
-        username = request.data.get('username')  # Username should also be passed
+        username = request.data.get('username')  # Username (email) should also be passed
+        statusCode = request.data.get('statusCode')  # Status code from the request
         merchant_id = "1228421"  # Sandbox Merchant ID
         currency = "LKR"
 
         # Validate that all required fields are provided
-        if not all([hash_value, order_id, amount, username]):
-            return Response({'error': 'All fields (hash, order_id, amount, username) are required'}, status=status.HTTP_400_BAD_REQUEST)
+        if not all([hash_value, order_id, amount, username, statusCode]):
+            return Response({'error': 'All fields (hash, order_id, amount, username, statusCode) are required'}, 
+                            status=status.HTTP_400_BAD_REQUEST)
 
-        # Retrieve user by username
+        # Retrieve user by username (email)
         try:
             user = User.objects.get(username=username)
         except User.DoesNotExist:
@@ -585,18 +593,64 @@ class ValidatePaymentHash(APIView):
         # Generate the order_id using the same logic as in GeneratePaymentHash
         generated_order_id = f"Order_{username}_{hashlib.md5(username.encode('utf-8')).hexdigest()[:6]}"
 
+        # Log both generated and provided order_ids for debugging
+        logger.info(f"Generated order ID: {generated_order_id}, Provided order ID: {order_id}")
+
         # Check if the order_id matches
         if generated_order_id != order_id:
+            logger.error(f"Invalid order ID: {generated_order_id} != {order_id}")
             return Response({'error': 'Invalid order ID'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Generate the hash using the same method as before
-        hash_string = f'{merchant_id}{order_id}{amount}{currency}{settings.PAYHERE_SECRET}'
-        generated_hash = hashlib.md5(hash_string.encode('utf-8')).hexdigest()
+        formatted_amount = f"{float(amount):.2f}"
+        merchant_secret = settings.PAYHERE_SECRET
+        merchant_secret_hash = hashlib.md5(merchant_secret.encode('utf-8')).hexdigest().upper()
+        
+        hash_string = f'{merchant_id}{order_id}{formatted_amount}{currency}{merchant_secret_hash}'
+        generated_hash = hashlib.md5(hash_string.encode('utf-8')).hexdigest().upper()
 
         logger.info(f"Validating hash. Expected: {hash_value}, Generated: {generated_hash}")
 
         # Validate the hash
         if generated_hash == hash_value:
+            # If statusCode is 2, perform the update
+            if statusCode == "2":
+                return self.update_user_data(user)
+
             return Response({'valid': True, 'message': 'Hash is valid'}, status=status.HTTP_200_OK)
         else:
             return Response({'valid': False, 'message': 'Hash does not match'}, status=status.HTTP_400_BAD_REQUEST)
+
+    def update_user_data(self, user):
+        try:
+            # Get the current date and time
+            current_date = timezone.now()
+
+            # Filter UserData by the current user (author)
+            updated_count = UserData.objects.filter(author=user).update(
+                time=60000,
+                paid=True,
+                user_type='Professional',  # Set user_type to Professional
+                paid_date=current_date  # Set the paid_date to the current date
+            )
+
+            if updated_count > 0:
+                logger.info(f'Updated {updated_count} UserData instances for user {user.email} successfully.')
+
+                return Response({
+                    'status': 'success', 
+                    'message': f'Updated {updated_count} UserData instances for user {user.email}: time set to 60000, paid set to True, user_type set to Professional, and paid_date set to {current_date}.'
+                }, status=status.HTTP_200_OK)
+            else:
+                logger.warning(f'No UserData instances found for user {user.email}.')
+                return Response({
+                    'status': 'warning',
+                    'message': f'No UserData instances found for user {user.email}.'
+                }, status=status.HTTP_404_NOT_FOUND)
+
+        except Exception as e:
+            logger.error(f'Error updating UserData instances for user {user.email}: {str(e)}')
+            return Response({
+                'status': 'error',
+                'message': 'Failed to update UserData instances. Please try again later.'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
