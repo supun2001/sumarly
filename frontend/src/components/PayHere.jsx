@@ -22,7 +22,7 @@ const PayHerePaymentPage = () => {
     country: '',
   });
   const [email, setEmail] = useState(null);
-  const [amount, setAmount] = useState(null);
+  const secretKey = import.meta.env.API_URL;
 
   useEffect(() => {
     // Load the PayHere script dynamically
@@ -61,11 +61,7 @@ const PayHerePaymentPage = () => {
     // Get email from localStorage
     const storedEmail = localStorage.getItem('email');
     setEmail(storedEmail);
-
-    // if (storedEmail) {
-    //   getHash(storedEmail);
-    // }
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, []); 
 
   // Handle form input change
   const handleChange = (e) => {
@@ -87,9 +83,9 @@ const PayHerePaymentPage = () => {
         const payment = {
           sandbox: true,
           merchant_id: res.data.merchant_id, // Ensure this is not undefined
-          return_url: 'https://www.sumarly.com/notify', // Important: Provide your return URL
-          cancel_url: 'https://www.sumarly.com/notify', // Important: Provide your cancel URL
-          notify_url: 'https://www.sumarly.com/notify', // Change this to your production URL
+          return_url: "https://www.sumarly.com/", // Important: Provide your return URL
+          cancel_url: "https://www.sumarly.com/", // Important: Provide your cancel URL
+          notify_url: `${secretKey}/api/hash/`, // Change this to your production URL
           order_id: res.data.orderID, // Use the order ID from state
           items: res.data.items, // Ensure this is not undefined or empty
           amount: res.data.amount, // Ensure this is not undefined

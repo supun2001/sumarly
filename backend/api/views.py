@@ -25,8 +25,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.middleware.csrf import get_token
-import time
-import random 
+from decimal import Decimal
+
 
 # Set up AssemblyAI API key
 aai.settings.api_key = settings.API_KEY
@@ -569,88 +569,95 @@ class GeneratePaymentHash(APIView):
 class ValidatePaymentHash(APIView):
     permission_classes = [AllowAny]
 
+    MERCHANT_ID = "1228421"  # Sandbox Merchant ID
+    CURRENCY = "LKR"
+
     def post(self, request):
-        # Retrieve the fields from the request data
+        # Retrieve and validate request data
         hash_value = request.data.get('hash')
         order_id = request.data.get('order_id')
-        amount = request.data.get('amount')  # Amount should be passed in request
-        username = request.data.get('username')  # Username (email) should also be passed
-        statusCode = request.data.get('statusCode')  # Status code from the request
-        merchant_id = "1228421"  # Sandbox Merchant ID
-        currency = "LKR"
+        amount = request.data.get('amount')
+        status_code = request.data.get('statusCode')
 
-        # Validate that all required fields are provided
-        if not all([hash_value, order_id, amount, username, statusCode]):
-            return Response({'error': 'All fields (hash, order_id, amount, username, statusCode) are required'}, 
+        if not all([hash_value, order_id, amount, status_code]):
+            return Response({'error': 'All fields (hash, order_id, amount, statusCode) are required'}, 
                             status=status.HTTP_400_BAD_REQUEST)
 
-        # Retrieve user by username (email)
-        try:
-            user = User.objects.get(username=username)
-        except User.DoesNotExist:
-            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        # Retrieve user by order_id
+        username = self.get_username_by_order_id(order_id)
+        if username is None:
+            return Response({'error': 'User not found for the provided order_id'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Generate the order_id using the same logic as in GeneratePaymentHash
-        generated_order_id = f"Order_{username}_{hashlib.md5(username.encode('utf-8')).hexdigest()[:6]}"
-
-        # Log both generated and provided order_ids for debugging
+        # Generate and validate order_id
+        generated_order_id = self.generate_order_id(username)
         logger.info(f"Generated order ID: {generated_order_id}, Provided order ID: {order_id}")
 
-        # Check if the order_id matches
         if generated_order_id != order_id:
             logger.error(f"Invalid order ID: {generated_order_id} != {order_id}")
             return Response({'error': 'Invalid order ID'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Generate the hash using the same method as before
-        formatted_amount = f"{float(amount):.2f}"
+        # Generate and validate hash
+        if not self.validate_hash(hash_value, order_id, amount):
+            return Response({'valid': False, 'message': 'Hash does not match'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Update user data if statusCode indicates success
+        if status_code == "2":
+            user = self.get_user(username)
+            return self.update_user_data(user)
+
+        return Response({'valid': True, 'message': 'Hash is valid'}, status=status.HTTP_200_OK)
+
+    def get_username_by_order_id(self, order_id):
+        # Logic to extract the username from the order_id
+        # Assuming the order_id format is "Order_{username}_{hash}"
+        try:
+            username = order_id.split('_')[1]  # Extracting username from order_id
+            return username
+        except IndexError:
+            logger.error(f"Invalid order_id format: {order_id}")
+            return None
+
+    def get_user(self, username):
+        try:
+            return User.objects.get(username=username)
+        except User.DoesNotExist:
+            return None
+
+    def generate_order_id(self, username):
+        return f"Order_{username}_{hashlib.md5(username.encode('utf-8')).hexdigest()[:6]}"
+
+    def validate_hash(self, hash_value, order_id, amount):
+        formatted_amount = f"{Decimal(amount):.2f}"
         merchant_secret = settings.PAYHERE_SECRET
         merchant_secret_hash = hashlib.md5(merchant_secret.encode('utf-8')).hexdigest().upper()
         
-        hash_string = f'{merchant_id}{order_id}{formatted_amount}{currency}{merchant_secret_hash}'
+        hash_string = f'{self.MERCHANT_ID}{order_id}{formatted_amount}{self.CURRENCY}{merchant_secret_hash}'
         generated_hash = hashlib.md5(hash_string.encode('utf-8')).hexdigest().upper()
-
         logger.info(f"Validating hash. Expected: {hash_value}, Generated: {generated_hash}")
 
-        # Validate the hash
-        if generated_hash == hash_value:
-            # If statusCode is 2, perform the update
-            if statusCode == "2":
-                return self.update_user_data(user)
-
-            return Response({'valid': True, 'message': 'Hash is valid'}, status=status.HTTP_200_OK)
-        else:
-            return Response({'valid': False, 'message': 'Hash does not match'}, status=status.HTTP_400_BAD_REQUEST)
+        return generated_hash == hash_value
 
     def update_user_data(self, user):
         try:
-            # Get the current date and time
             current_date = timezone.now()
-
-            # Filter UserData by the current user (author)
             updated_count = UserData.objects.filter(author=user).update(
                 time=60000,
                 paid=True,
-                user_type='Professional',  # Set user_type to Professional
-                paid_date=current_date  # Set the paid_date to the current date
+                user_type='Professional',
+                paid_date=current_date
             )
 
             if updated_count > 0:
                 logger.info(f'Updated {updated_count} UserData instances for user {user.email} successfully.')
-
                 return Response({
                     'status': 'success', 
-                    'message': f'Updated {updated_count} UserData instances for user {user.email}: time set to 60000, paid set to True, user_type set to Professional, and paid_date set to {current_date}.'
+                    'message': f'Updated {updated_count} UserData instances for user {user.email}.'
                 }, status=status.HTTP_200_OK)
             else:
                 logger.warning(f'No UserData instances found for user {user.email}.')
-                return Response({
-                    'status': 'warning',
-                    'message': f'No UserData instances found for user {user.email}.'
-                }, status=status.HTTP_404_NOT_FOUND)
+                return Response({'status': 'warning', 'message': 'No UserData instances found.'}, status=status.HTTP_404_NOT_FOUND)
 
         except Exception as e:
             logger.error(f'Error updating UserData instances for user {user.email}: {str(e)}')
-            return Response({
-                'status': 'error',
-                'message': 'Failed to update UserData instances. Please try again later.'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'status': 'error', 'message': 'Failed to update UserData instances. Please try again later.'}, 
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)

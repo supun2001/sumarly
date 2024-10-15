@@ -2,7 +2,7 @@ import axios from "axios";
 import { ACCESS_TOKEN } from "./constants";
 
 // Define the URL for the API
-const apiUrl = "/choreo-apis/sumarly/backend/v1";
+const apiUrl = import.meta.env.API_URL;
 
 // Create an Axios instance
 const api = axios.create({
