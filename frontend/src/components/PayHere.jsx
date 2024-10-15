@@ -22,7 +22,7 @@ const PayHerePaymentPage = () => {
     country: '',
   });
   const [email, setEmail] = useState(null);
-  const secretKey = import.meta.env.API_URL;
+  const secretKey = "/choreo-apis/sumarly/backend/v1";
 
   useEffect(() => {
     // Load the PayHere script dynamically
