@@ -4,8 +4,9 @@ import { ACCESS_TOKEN } from "./constants";
 // Define the URL for the API
 const apiUrl = "/choreo-apis/sumarly/backend/v1";
 // Create an Axios instance
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL : apiUrl,
+  baseURL: import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL : window.configs.apiUrl,
 });
 
 // Add request interceptor

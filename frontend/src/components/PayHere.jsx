@@ -8,7 +8,7 @@ import {
   Grid,
   Paper,
 } from '@mui/material';
-
+import './config';
 
 const PayHerePaymentPage = () => {
   const [hash, setHash] = useState(null);
@@ -22,9 +22,12 @@ const PayHerePaymentPage = () => {
     country: '',
   });
   const [email, setEmail] = useState(null);
-  const secretKey = "/choreo-apis/sumarly/backend/v1";
+  const [secretKey, setSecretKey] = useState('');
+
 
   useEffect(() => {
+    const apiUrlFromConfig = window.configs.apiUrl;
+    setSecretKey(apiUrlFromConfig);
     // Load the PayHere script dynamically
     const script = document.createElement('script');
     script.src = 'https://www.payhere.lk/lib/payhere.js';
