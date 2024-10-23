@@ -8,7 +8,7 @@ import {
   Grid,
   Paper,
 } from '@mui/material';
-import '../../config';
+import '../../public/config';
 
 const PayHerePaymentPage = () => {
   const [hash, setHash] = useState(null);
